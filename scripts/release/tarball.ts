@@ -6,8 +6,9 @@
  * currently says.
  */
 
-import { readFileSync } from 'node:fs'
+import { readdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
+import { pathToFileURL } from 'node:url'
 import { capture } from './process.ts'
 
 /** Name of the file recording the order in which a packed family uploads. */
@@ -50,4 +51,25 @@ export function packedIdentity(tarball: string): PackedIdentity {
  */
 export function readPublishOrder(directory: string): string[] {
   return readFileSync(join(directory, PUBLISH_ORDER_FILE), 'utf8').split('\n').filter(line => line !== '')
+}
+
+/**
+ * Read every packed tarball in the given directories as local npm dependencies.
+ * @param directories - absolute directories holding packed tarballs.
+ * @returns package names mapped to file URLs and packed versions.
+ */
+export function packedDependencies(
+  directories: readonly string[],
+): Map<string, { url: string; version: string }> {
+  const dependencies = new Map<string, { url: string; version: string }>()
+  for (const directory of directories) {
+    const tarballs = readdirSync(directory).filter(name => name.endsWith('.tgz')).sort()
+    if (tarballs.length === 0) throw new Error(`${directory} holds no packed tarball`)
+    for (const filename of tarballs) {
+      const tarball = join(directory, filename)
+      const { name, version } = packedIdentity(tarball)
+      dependencies.set(name, { url: pathToFileURL(tarball).href, version })
+    }
+  }
+  return dependencies
 }

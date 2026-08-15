@@ -15,7 +15,7 @@ import { afterEach, describe, expect, it } from 'vitest'
 import { Context } from '@deepseek-ai/cordis'
 import Loader from '@deepseek-ai/cordis-plugin-loader'
 import Include from '@deepseek-ai/cordis-plugin-include'
-import HttpServer from '../src/index.ts'
+import HttpServer, { provideWebServerAuthentication, type WebServerAuthentication } from '../src/index.ts'
 
 let root: string | undefined
 let context: Context | undefined
@@ -28,18 +28,23 @@ afterEach(async () => {
 })
 
 /** Write a cordis.yml with one webserver row, then boot it through the real Loader. */
-async function loadComposition(port = 0): Promise<Context> {
+async function loadComposition(
+  port = 0,
+  authentication?: WebServerAuthentication,
+  host: '127.0.0.1' | '0.0.0.0' = '127.0.0.1',
+): Promise<Context> {
   root = await mkdtemp(join(tmpdir(), 'dsh-webserver-loader-'))
   const configPath = join(root, 'cordis.yml')
   await writeFile(configPath, [
     "- name: '@deepseek-ai/dsh-host-webserver'",
     '  config:',
-    "    host: '127.0.0.1'",
+    `    host: '${host}'`,
     `    port: ${String(port)}`,
     '',
   ].join('\n'))
 
   context = new Context()
+  if (authentication !== undefined) provideWebServerAuthentication(context, authentication)
   context.baseUrl = pathToFileURL(root).href + '/'
   await context.plugin(Loader)
   context.loader.builtins.include = Include
@@ -86,6 +91,15 @@ async function upgrade(port: number, path: string): Promise<ReturnType<typeof co
 }
 
 describe('real Loader composition', () => {
+  it('rejects replacement of private launch authentication', () => {
+    const launchContext = new Context()
+    context = launchContext
+    provideWebServerAuthentication(launchContext, { cookieName: 'dsh-test', token: 'first' })
+    expect(() => {
+      provideWebServerAuthentication(launchContext, { cookieName: 'dsh-test', token: 'second' })
+    }).toThrow('launch authentication is already configured')
+  })
+
   // Real-Loader composition resolves workspace packages through tsx at test
   // time; first resolution after the host/client program split is slow enough
   // to trip the default 5s budget on cold caches.
@@ -198,6 +212,73 @@ describe('real Loader composition', () => {
     expect(upgradedServerClosed).toBe(true)
     upgraded.destroy()
     await expect(request(port, '/probe')).rejects.toThrow()
+  })
+
+  it('authenticates every HTTP and upgrade route before dispatch', { timeout: 60_000 }, async () => {
+    const authentication = { cookieName: 'dsh-desktop-host', token: 'desktop-secret' }
+    const loaded = await loadComposition(0, authentication)
+    const server = loaded.webServer
+    const port = server.port
+    server.register({ kind: 'exact', path: '/probe', handler: (_req, res) => { res.writeHead(200); res.end('EXACT') } })
+    server.registerFallback((_req, res) => { res.writeHead(200); res.end('FALLBACK') })
+    server.registerUpgrade({
+      path: '/events',
+      handler: (_req, socket) => {
+        socket.write('HTTP/1.1 101 Switching Protocols\r\nConnection: Upgrade\r\nUpgrade: dsh-test\r\n\r\n')
+      },
+    })
+
+    expect((await request(port, '/probe')).status).toBe(401)
+    expect((await request(port, '/probe', { headers: { cookie: 'dsh-desktop-host=wrong' } })).status).toBe(401)
+    expect((await request(port, '/probe', { headers: { cookie: 'dsh-desktop-host=desktop-secret; dsh-desktop-host=desktop-secret' } })).status).toBe(401)
+    const authenticated = { headers: { cookie: 'other=value; dsh-desktop-host=desktop-secret' } }
+    expect(await request(port, '/probe', authenticated)).toMatchObject({ status: 200, body: 'EXACT' })
+    expect(await request(port, '/fallback', authenticated)).toMatchObject({ status: 200, body: 'FALLBACK' })
+
+    const denied = connect(port, '127.0.0.1')
+    await once(denied, 'connect')
+    const deniedResponse = once(denied, 'data')
+    denied.write([
+      'GET /events HTTP/1.1',
+      `Host: 127.0.0.1:${String(port)}` ,
+      'Connection: Upgrade',
+      'Upgrade: dsh-test',
+      '',
+      '',
+    ].join('\r\n'))
+    const [deniedData] = await deniedResponse as [Buffer]
+    expect(String(deniedData)).toContain('401 Unauthorized')
+    denied.destroy()
+
+    const accepted = connect(port, '127.0.0.1')
+    await once(accepted, 'connect')
+    const acceptedResponse = once(accepted, 'data')
+    accepted.write([
+      'GET /events HTTP/1.1',
+      `Host: 127.0.0.1:${String(port)}` ,
+      'Connection: Upgrade',
+      'Upgrade: dsh-test',
+      'Cookie: dsh-desktop-host=desktop-secret',
+      '',
+      '',
+    ].join('\r\n'))
+    const [acceptedData] = await acceptedResponse as [Buffer]
+    expect(String(acceptedData)).toContain('101 Switching Protocols')
+    accepted.destroy()
+    await loaded.fiber.dispose()
+    await expect(request(port, '/probe', authenticated)).rejects.toThrow()
+  })
+
+  it('rejects an authenticated composition that does not request dynamic loopback binding', { timeout: 60_000 }, async () => {
+    const authentication = { cookieName: 'dsh-desktop-host', token: 'desktop-secret' }
+    await expect(loadComposition(3080, authentication)).rejects.toThrow(
+      'authenticated launch requires host 127.0.0.1 and port 0',
+    )
+    await context?.fiber.dispose()
+    context = undefined
+    await expect(loadComposition(0, authentication, '0.0.0.0')).rejects.toThrow(
+      'authenticated launch requires host 127.0.0.1 and port 0',
+    )
   })
 
   it('fails the fiber when the port is already taken (fail-loud at activation)', { timeout: 60_000 }, async () => {

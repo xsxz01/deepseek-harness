@@ -175,6 +175,30 @@ describe('ui-theme apply', () => {
     expect(theme.getTheme().preference).toBe('system')
   })
 
+  it('routes the desktop shortcut through built-in light and dark preferences and disposes it', async () => {
+    const desktopWindow = new EventTarget()
+    vi.stubGlobal('window', desktopWindow)
+    try {
+      const b = await bench()
+      declareItems(b.slots)
+      const fiber = b.ctx.plugin({ inject: [...inject], apply })
+      await fiber.await()
+      const theme = b.ctx.get('theme') as ThemeRuntime
+      theme.setTheme('light')
+      desktopWindow.dispatchEvent(new Event('dsh-desktop:theme-toggle'))
+      expect(theme.getTheme().preference).toBe('dark')
+      desktopWindow.dispatchEvent(new Event('dsh-desktop:theme-toggle'))
+      expect(theme.getTheme().preference).toBe('light')
+      await vi.waitFor(() => { expect(b.mutate).toHaveBeenCalledTimes(3) })
+
+      await fiber.dispose()
+      desktopWindow.dispatchEvent(new Event('dsh-desktop:theme-toggle'))
+      expect(theme.getTheme().preference).toBe('light')
+    } finally {
+      vi.unstubAllGlobals()
+    }
+  })
+
   it('recovers after an HMR collapse of the declaring entry (stale disposer must not block)', async () => {
     const b = await bench()
     const host = declareItems(b.slots)

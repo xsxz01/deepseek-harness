@@ -58,8 +58,9 @@ function main(): void {
 
   const publishing = process.env.RELEASE_PUBLISH === 'true'
   if (publishing) {
-    verifyPublishable(members)
-    verifyTag(family, members, process.env.GITHUB_REF ?? '')
+    const publicationMembers = family.publicationMembers(members)
+    verifyPublishable(publicationMembers)
+    verifyTag(family, publicationMembers, process.env.GITHUB_REF ?? '')
   }
 
   const versions = [...new Set(members.map(member => member.version))]

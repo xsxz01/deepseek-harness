@@ -1,0 +1,39 @@
+appId: ai.deepseek.harness
+productName: DeepSeek Harness
+asar: true
+npmRebuild: false
+electronDist: node_modules/electron/dist
+directories:
+  output: dist
+files:
+  - lib/**
+  - assets/desktop-shell.css
+  - package.json
+extraFiles:
+  - from: assets/dsh.cmd
+    to: dsh.cmd
+extraResources:
+  - from: assets/cli-path.ps1
+    to: desktop/cli-path.ps1
+  - from: ../web/public/favicon.svg
+    to: desktop/favicon.svg
+  - from: dist/desktop-runtime
+    to: harness
+    filter:
+      - '**/*'
+  - from: dist/desktop-runtime/node_modules
+    to: harness/node_modules
+    filter:
+      - '**/*'
+win:
+  icon: ../web/public/favicon.svg
+  target:
+    - nsis
+    - zip
+  artifactName: '${productName}-${version}-${arch}.${ext}'
+nsis:
+  include: build/installer.nsh
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  deleteAppDataOnUninstall: false

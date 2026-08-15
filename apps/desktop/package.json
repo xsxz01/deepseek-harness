@@ -1,0 +1,21 @@
+{
+  "name": "@deepseek-ai/dsh-desktop",
+  "description": "DeepSeek Harness Electron desktop application",
+  "author": "DeepSeek",
+  "version": "0.1.0-rc.5",
+  "private": true,
+  "type": "module",
+  "main": "lib/main.js",
+  "scripts": {
+    "start": "electron lib/main.js",
+    "test:e2e": "vitest run --config ../../vitest.desktop.config.ts",
+    "package:win": "electron-builder --win nsis zip"
+  },
+  "license": "MIT",
+  "devDependencies": {
+    "@deepseek-ai/dsh": "workspace:^",
+    "electron": "43.4.0",
+    "playwright": "^1.61.1",
+    "electron-builder": "26.15.3"
+  }
+}

@@ -1,6 +1,6 @@
 /**
  * The three independent publish sequences this repository releases from
- * (`packages/` + `apps/`, `vendor/`, and `native/`) and the two this module
+ * (`packages/` + version-following `apps/`, `vendor/`, and `native/`) and the two this module
  * owns: `dsh` and `vendor`. Each family carries its own version baseline, tag
  * naming, and publish set, so releasing one never republishes another
  * ([rationale](../../.agents/notes/implemented/process/2026-08-10-npm-release-sequences.md)).
@@ -19,7 +19,7 @@ const ORDER_SECTIONS = ['dependencies', 'optionalDependencies'] as const
 /** The workspace root manifest, which is never a release member. */
 const WORKSPACE_ROOT_PACKAGE = '@deepseek-ai/dsh-root'
 
-/** One publishable package of a release family. */
+/** One versioned package of a release family. */
 export interface ReleaseMember {
   /** Repository-relative package directory, for example `packages/core/session`. */
   readonly directory: string
@@ -104,6 +104,15 @@ export abstract class ReleaseFamily {
       })
     }
     return members
+  }
+
+  /**
+   * Select npm publication members while retaining private version followers in the family.
+   * @param members - every versioned family member.
+   * @returns members whose manifests do not set `private: true`.
+   */
+  publicationMembers(members: readonly ReleaseMember[]): ReleaseMember[] {
+    return members.filter(member => member.manifest.private !== true)
   }
 
   /**

@@ -134,18 +134,23 @@ function allPatches(composed: ComposedProfile): PatchOptions[] {
  * platform on its own rows), the profile's user layer, the home-level user
  * layer (`$DSH_HOME/cordis.patch.yml` — machine-local preferences that apply
  * to every profile, so it outranks the per-profile layer), `--patch` overlays,
- * then the telemetry switch.
+ * in-memory invocation overlays, then the telemetry switch.
  * @param name - the profile name.
  * @param patchFiles - `--patch` overlay paths, in argv order.
+ * @param invocationPatches - launcher-owned in-memory overlays, in precedence order.
  * @returns the profile, its patch layers, and the composed row index.
  */
 function composeProfile(
   name: string,
   patchFiles: readonly string[],
+  invocationPatches: readonly PatchOptions[],
 ): ComposedProfile {
   const profile = prepareProfile(name)
   const homePatches = loadOptionalPatches(NAME, homePatchPath()) ?? []
-  const overlays = patchFiles.flatMap(file => loadOverlayPatches(NAME, resolve(file)))
+  const overlays = [
+    ...patchFiles.flatMap(file => loadOverlayPatches(NAME, resolve(file))),
+    ...invocationPatches,
+  ]
   const bundlePatches = profile.layers.flatMap(layer => layer.patches)
   const rows = new Map<string, EntryOptions>()
   for (const row of composeEntries([bundlePatches, profile.patches, homePatches, overlays])) {
@@ -180,6 +185,10 @@ export interface RunProfileOptions {
   patchFiles: readonly string[]
   /** The invocation's inner arguments, handed to the tree through `ctx.cmdlineArgs`. */
   args: readonly string[]
+  /** In-memory launcher overlays applied after `--patch` files. */
+  invocationPatches?: readonly PatchOptions[]
+  /** Launcher-owned process facts to provide before any configuration row mounts. */
+  beforeMount?: (ctx: Context) => void
 }
 
 /**
@@ -201,11 +210,11 @@ function suppressShutdownError(ctx: Context, signal: AbortSignal, error: unknown
 /**
  * Boot one profile invocation end to end and leave process lifetime to the
  * mounted plugins (or to a one-shot runner the composition mounts).
- * @param options - environment snapshot, profile name, overlays, and the booted app's own arguments.
+ * @param options - environment snapshot, profile name, overlays, app arguments, and optional pre-mount launcher facts.
  * @returns the settled root context and the shutdown controller.
  */
 export async function runProfile(options: RunProfileOptions): Promise<{ ctx: Context; shutdown: ProcessShutdown }> {
-  const composed = composeProfile(options.profile, options.patchFiles)
+  const composed = composeProfile(options.profile, options.patchFiles, options.invocationPatches ?? [])
   const app: { current?: Context } = {}
   const shutdown = createProcessShutdown(async () => { await app.current?.fiber.dispose() })
   const signalShutdown = new AbortController()
@@ -256,6 +265,7 @@ export async function runProfile(options: RunProfileOptions): Promise<{ ctx: Con
       args: options.args,
       exit: code => void shutdown.shutdown(code),
     })
+    options.beforeMount?.(hostCtx)
   })
   app.current = ctx
   // A surface can dispose the whole tree while boot or this post-boot watcher

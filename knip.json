@@ -11,6 +11,7 @@
     "sandbox-exec",
     "tar",
     "taskkill",
+    "pwsh",
     "where.exe"
   ],
   "ignoreWorkspaces": [
@@ -725,6 +726,21 @@
         "react",
         "react-dom"
       ]
+    },
+    "apps/desktop": {
+      "entry": [
+        "src/main.ts",
+        "tests/**/*.spec.ts",
+        "tests/**/*.electron.ts",
+        "tests/**/*.packaged.ts",
+        "tests/fixtures/*.mjs"
+      ],
+      "project": [
+        "src/**/*.ts",
+        "tests/**/*.ts",
+        "tests/**/*.mjs"
+      ],
+      "vitest": false
     },
     "apps/cli": {
       "entry": [

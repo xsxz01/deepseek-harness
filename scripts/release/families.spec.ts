@@ -1,5 +1,6 @@
 /** Release family discovery, publish order, tag naming, and the bump judgements. */
 
+import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { releaseFamily, type ReleaseMember } from './families.ts'
 import { compareVersions, nextVendorVersion, reachesPayload } from './bump.ts'
@@ -16,6 +17,14 @@ function member(directory: string, name: string, manifest: Record<string, unknow
 }
 
 describe('release families', () => {
+  it('versions private product workspaces without adding them to the npm publish set', () => {
+    const family = releaseFamily('dsh')
+    const members = family.members(resolve(import.meta.dirname, '../..'))
+    expect(members.some(member => member.directory === 'apps/desktop')).toBe(true)
+    expect(family.publicationMembers(members).some(member => member.directory === 'apps/desktop')).toBe(false)
+    expect(family.publicationMembers(members).some(member => member.directory === 'apps/cli')).toBe(true)
+  })
+
   it('names one tag for the whole dsh family and one per vendored package', () => {
     const dsh = releaseFamily('dsh')
     const vendor = releaseFamily('vendor')

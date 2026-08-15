@@ -1,0 +1,19 @@
+diff --git a/out/util/electronGet.js b/out/util/electronGet.js
+--- a/out/util/electronGet.js
++++ b/out/util/electronGet.js
+@@ -61,12 +61,13 @@ function resolveCacheMode() {
+     var _a;
+     const varName = "ELECTRON_DOWNLOAD_CACHE_MODE";
+     const cacheOverride = (_a = process.env[varName]) === null || _a === void 0 ? void 0 : _a.trim();
+-    if (cacheOverride && Number(cacheOverride) in get_1.ElectronDownloadCacheMode) {
++    const cacheModes = get_1.ElectronDownloadCacheMode;
++    if (cacheOverride && cacheModes !== undefined && Number(cacheOverride) in cacheModes) {
+         const mode = Number(cacheOverride);
+         builder_util_1.log.debug({ mode }, `cache mode overridden via env var ${varName}`);
+         return mode;
+     }
+-    return get_1.ElectronDownloadCacheMode.ReadWrite;
++    return (cacheModes === null || cacheModes === void 0 ? void 0 : cacheModes.ReadWrite) ?? 0;
+ }
+ async function extractZipStreaming(file, dir) {
+     var _a;

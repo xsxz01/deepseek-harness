@@ -4,8 +4,34 @@
  */
 
 import { spawnSync } from 'node:child_process'
-import { realpathSync } from 'node:fs'
+import { existsSync, realpathSync } from 'node:fs'
+import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+
+/** Shell-free executable and leading arguments for the active pnpm installation. */
+export interface PnpmInvocation {
+  command: string
+  args: readonly string[]
+}
+
+/**
+ * Resolve pnpm through the JavaScript entry that launched the repository command.
+ * @param environment - process environment inherited from pnpm.
+ * @param nodeExecutable - Node executable whose adjacent Corepack installation is eligible.
+ * @returns current Node plus pnpm's platform-independent JavaScript entry.
+ */
+export function pnpmInvocation(
+  environment: NodeJS.ProcessEnv = process.env,
+  nodeExecutable: string = process.execPath,
+): PnpmInvocation {
+  const inherited = environment.npm_execpath
+  if (inherited !== undefined && inherited.length > 0) {
+    return { command: nodeExecutable, args: [inherited] }
+  }
+  const corepack = join(dirname(nodeExecutable), 'node_modules', 'corepack', 'dist', 'pnpm.js')
+  if (existsSync(corepack)) return { command: nodeExecutable, args: [corepack] }
+  throw new Error('release process: pnpm JavaScript entry is unavailable through npm_execpath or Corepack')
+}
 
 /** Where and with what environment a release step runs a command. */
 export interface RunOptions {

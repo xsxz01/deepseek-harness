@@ -2,7 +2,7 @@
 
 [English](web-server.md) | 中文
 
-[dsh-host-webserver](../../packages/host/webserver) 是 GUI 宿主的浏览器 HTTP 载体：它是一个提供 `ctx.webServer` 的 `node:http` 插件，包含具名路由注册表、index.html 转换回调，以及一个可由插件认领的回退处理器。它不属于 agent loop（智能体循环），也不是能力 seam；它不了解任何 harness 概念。其他插件负责注册所有功能路由，包括 `/api` 桥接、插件 bundle 和 HMR（热模块替换）事件流（[分层说明](../../.agents/notes/implemented/architecture/2026-07-19-gui-layering-and-rpc-protocol.md)）。该服务器只服务浏览器：Electron 通过 `file://` 加载已构建文件，并经 IPC 桥接发送 fetch 请求，不使用本服务器。
+[dsh-host-webserver](../../packages/host/webserver) 是 GUI Host 的浏览器 HTTP 载体：它是一个提供 `ctx.webServer` 的 `node:http` 插件，包含具名 route 注册表、index.html 转换回调，以及一个可由插件认领的 fallback handler。它不属于 agent loop（智能体循环），也不是能力 seam；它不了解任何 harness 概念。其他插件负责注册所有功能 route，包括 `/api` 桥接、插件 bundle 和 HMR（热模块替换）事件流（[分层说明](../../.agents/notes/implemented/architecture/2026-07-19-gui-layering-and-rpc-protocol.md)）。浏览器和 Electron 客户端都使用这项 HTTP/WebSocket 载体；桌面 launcher 在 Web 组合挂载前添加进程内认证。
 
 源码：[`packages/host/webserver/src/index.ts`](../../packages/host/webserver/src/index.ts)
 
@@ -38,7 +38,17 @@ interface Config {
 }
 ```
 
-`host` 只接受 `127.0.0.1`（默认姿态）和 `0.0.0.0`（刻意的网络暴露）；没有 TLS、认证或 origin 策略，因此绑定到非回环地址会把服务器暴露给该网络。dist 位置是认领席位的前端插件的组装事实。
+```ts type-equiv
+/** Optional process-local authentication required before any HTTP or upgrade dispatch. */
+interface WebServerAuthentication {
+  /** Exact cookie name the supervising Host supplies to its client. */
+  cookieName: string
+  /** Per-process secret compared without data-dependent timing after a length check. */
+  token: string
+}
+```
+
+`host` 只接受 `127.0.0.1`（默认姿态）和 `0.0.0.0`（刻意的网络暴露）。Launcher 可以在 row 挂载前提供进程内 cookie 认证；该策略要求 `127.0.0.1` 与端口 `0`，并在分发前拒绝未认证的 HTTP 请求和 upgrade。未提供策略的组合不具备认证、TLS 或内置 origin 策略。dist 位置是认领席位的前端插件的组装事实。
 
 ## 服务
 
@@ -104,5 +114,5 @@ tapIndex(transform: (html: string) => string): () => void
 applyIndexTaps(html: string): string
 ```
 
-Source: [`packages/host/webserver/src/index.ts:59`](../../packages/host/webserver/src/index.ts)
+Source: [`packages/host/webserver/src/index.ts:81`](../../packages/host/webserver/src/index.ts)
 <!-- END GENERATED cordis-surface -->

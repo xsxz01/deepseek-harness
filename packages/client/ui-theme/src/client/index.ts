@@ -32,6 +32,8 @@ export type { ThemePreference, ThemeSettings } from '../theme-settings.ts'
 /** Namespace owning this feature's settings-row copy. */
 export const SETTINGS_NS = 'settings.theme'
 
+const DESKTOP_THEME_TOGGLE_EVENT = 'dsh-desktop:theme-toggle'
+
 declare module '@deepseek-ai/dsh-client-ui-slots' {
   interface LocaleNamespaceMap {
     /** The Appearance settings row's copy. */
@@ -385,6 +387,15 @@ export function apply(ctx: ClientContext): void {
   const host = ctx.settingsScope.bind<ThemeSettings>({ namespace: THEME_SETTINGS_NAMESPACE })
   const theme = new ThemeRuntime(ctx, host)
   ctx.provide('theme', theme)
+  if (typeof window !== 'undefined') {
+    ctx.effect(() => {
+      const toggle = (): void => {
+        theme.setTheme(theme.getTheme().active.colorScheme === 'dark' ? 'light' : 'dark')
+      }
+      window.addEventListener(DESKTOP_THEME_TOGGLE_EVENT, toggle)
+      return () => { window.removeEventListener(DESKTOP_THEME_TOGGLE_EVENT, toggle) }
+    }, 'ui-theme: desktop light/dark toggle')
+  }
 
   ctx.effect(() => ctx.locale.register(SETTINGS_NS, { zh, en }), 'ui-theme: settings row dictionaries')
 

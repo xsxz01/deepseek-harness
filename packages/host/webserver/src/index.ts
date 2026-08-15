@@ -4,10 +4,12 @@
  * index transform taps, and the single fallback seat for everything no route
  * claims). Knows no harness concepts and serves no files; the composing
  * application's frontend plugin owns dist serving through the fallback hook.
- * Web shape only — Electron loads dist over file:// and carries fetch over an
- * IPC bridge. This package never prints: the URL line belongs to the shell.
+ * Browser carrier only; Web and desktop compositions both reach registered
+ * routes over HTTP/WebSocket. This package never prints: URL ownership stays
+ * with the composing application.
  */
 
+import { timingSafeEqual } from 'node:crypto'
 import { createServer } from 'node:http'
 import type { IncomingMessage, ServerResponse, Server } from 'node:http'
 import type { AddressInfo } from 'node:net'
@@ -49,6 +51,26 @@ export interface Config {
   port: number
 }
 
+/** Optional process-local authentication required before any HTTP or upgrade dispatch. */
+export interface WebServerAuthentication {
+  /** Exact cookie name the supervising Host supplies to its client. */
+  cookieName: string
+  /** Per-process secret compared without data-dependent timing after a length check. */
+  token: string
+}
+
+const launchAuthentication = new WeakMap<Context, Readonly<WebServerAuthentication>>()
+
+/**
+ * Provide one launcher's private Web authentication before configuration rows mount.
+ * @param ctx - root context that will mount the WebServer service.
+ * @param authentication - process-local cookie identity and secret.
+ */
+export function provideWebServerAuthentication(ctx: Context, authentication: WebServerAuthentication): void {
+  if (launchAuthentication.has(ctx.root)) throw new Error('webserver: launch authentication is already configured')
+  launchAuthentication.set(ctx.root, Object.freeze({ ...authentication }))
+}
+
 /**
  * The browser HTTP carrier service. Activation listens immediately. Route
  * registration order does not affect requests because configured named routes
@@ -70,9 +92,11 @@ export class WebServer extends Service {
   private fallback: WebRoute['handler'] | undefined
   private server!: Server
   private listenedPort!: number
+  private readonly authentication: WebServerAuthentication | undefined
 
   constructor(ctx: Context, private config: Config) {
     super(ctx, 'webServer')
+    this.authentication = launchAuthentication.get(ctx.root)
   }
 
   /** The listening port (the OS-assigned value when config.port is 0). */
@@ -146,7 +170,15 @@ export class WebServer extends Service {
 
   /** Listen; resolves once the socket is bound (rejection = FAILED fiber). */
   async [Service.init](): Promise<void> {
+    if (this.authentication !== undefined && (this.config.host !== '127.0.0.1' || this.config.port !== 0)) {
+      throw new Error('webserver: authenticated launch requires host 127.0.0.1 and port 0')
+    }
     const handle = async (req: IncomingMessage, res: ServerResponse): Promise<void> => {
+      if (!this.isAuthorized(req)) {
+        res.writeHead(401)
+        res.end()
+        return
+      }
       /* v8 ignore next -- `?? '/'` arm: node:http always sets url on server
       requests; the field is only optional on the client-side IncomingMessage type */
       const rawPath = new URL(req.url ?? '/', 'http://x').pathname
@@ -188,6 +220,10 @@ export class WebServer extends Service {
         socket.off('error', onError)
         this.upgradedSockets.delete(socket)
       })
+      if (!this.isAuthorized(req)) {
+        socket.end('HTTP/1.1 401 Unauthorized\r\nConnection: close\r\n\r\n')
+        return
+      }
       let route: WebUpgradeRoute | undefined
       try {
         /* v8 ignore next -- node:http always sets url on server requests. */
@@ -236,6 +272,25 @@ export class WebServer extends Service {
       }))
       await Promise.all([serverClosed, ...upgradedClosed])
     }, 'webServer.listen')
+  }
+
+  /** Authenticate one request against the optional process-local cookie policy. */
+  private isAuthorized(req: IncomingMessage): boolean {
+    const authentication = this.authentication
+    if (authentication === undefined) return true
+    const header = req.headers.cookie
+    if (header === undefined) return false
+    let candidate: string | undefined
+    for (const field of header.split(';')) {
+      const separator = field.indexOf('=')
+      if (separator === -1 || field.slice(0, separator).trim() !== authentication.cookieName) continue
+      if (candidate !== undefined) return false
+      candidate = field.slice(separator + 1).trim()
+    }
+    if (candidate === undefined) return false
+    const supplied = Buffer.from(candidate)
+    const expected = Buffer.from(authentication.token)
+    return supplied.length === expected.length && timingSafeEqual(supplied, expected)
   }
 
   /** Longest-prefix-wins over the prefix table after an exact-table miss. */

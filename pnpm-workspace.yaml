@@ -40,6 +40,8 @@ peerDependencyRules:
 allowBuilds:
   esbuild: true
   lefthook: true
+  # Electron's install script downloads the reviewed, lock-pinned desktop runtime archive.
+  electron: true
   # Cross-platform boundary for the persistent PTY backend, including ConPTY on Windows.
   node-pty: true
   # Pulled in by @earendil-works/pi-ai (optional LLM API backend). pnpm lists
@@ -69,4 +71,5 @@ minimumReleaseAgeExclude:
   - node-addon-require-builtin@0.1.4
 
 patchedDependencies:
+  app-builder-lib@26.15.3: patches/app-builder-lib@26.15.3.patch
   node-pty@1.1.0: patches/node-pty@1.1.0.patch

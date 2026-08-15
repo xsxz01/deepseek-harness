@@ -2,7 +2,7 @@
 
 English | [中文](web-server.zh.md)
 
-[dsh-host-webserver](../../packages/host/webserver) is the browser HTTP carrier for the GUI host: a single `node:http` plugin providing `ctx.webServer`, a named-route registry, index.html transform callbacks, and one fallback handler that a plugin may claim. It is not part of the agent loop and not a capability seam; it knows no harness concepts, and another plugin registers every feature route, including the `/api` bridge, plugin bundles, and the HMR event stream ([layering note](../../.agents/notes/implemented/architecture/2026-07-19-gui-layering-and-rpc-protocol.md)). It serves browsers only: Electron loads the built files over `file://` and sends fetch requests through an IPC bridge instead of this server.
+[dsh-host-webserver](../../packages/host/webserver) is the browser HTTP carrier for the GUI host: a single `node:http` plugin providing `ctx.webServer`, a named-route registry, index.html transform callbacks, and one fallback handler that a plugin may claim. It is not part of the agent loop and not a capability seam; it knows no harness concepts, and another plugin registers every feature route, including the `/api` bridge, plugin bundles, and the HMR event stream ([layering note](../../.agents/notes/implemented/architecture/2026-07-19-gui-layering-and-rpc-protocol.md)). Browser and Electron clients both use this HTTP/WebSocket carrier; the desktop launcher adds process-local authentication before the Web composition mounts.
 
 Source: [`packages/host/webserver/src/index.ts`](../../packages/host/webserver/src/index.ts)
 
@@ -38,7 +38,17 @@ interface Config {
 }
 ```
 
-`host` accepts only `127.0.0.1` (default posture) and `0.0.0.0` (deliberate network exposure); there is no TLS, auth, or origin policy, so a non-loopback bind exposes the server to that network. The dist location is an assembly fact of the frontend plugin that claims the seat.
+```ts type-equiv
+/** Optional process-local authentication required before any HTTP or upgrade dispatch. */
+interface WebServerAuthentication {
+  /** Exact cookie name the supervising Host supplies to its client. */
+  cookieName: string
+  /** Per-process secret compared without data-dependent timing after a length check. */
+  token: string
+}
+```
+
+`host` accepts only `127.0.0.1` (default posture) and `0.0.0.0` (deliberate network exposure). A launcher may provide process-local cookie authentication before rows mount; that policy requires `127.0.0.1` with port `0` and rejects unauthorized HTTP requests and upgrades before dispatch. A composition without the policy has no authentication, TLS, or built-in origin policy. The dist location is an assembly fact of the frontend plugin that claims the seat.
 
 ## The service
 
@@ -104,5 +114,5 @@ tapIndex(transform: (html: string) => string): () => void
 applyIndexTaps(html: string): string
 ```
 
-Source: [`packages/host/webserver/src/index.ts:59`](../../packages/host/webserver/src/index.ts)
+Source: [`packages/host/webserver/src/index.ts:81`](../../packages/host/webserver/src/index.ts)
 <!-- END GENERATED cordis-surface -->
