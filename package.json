@@ -27,7 +27,7 @@
     "desktop:test:e2e": "vitest run --config vitest.desktop.config.ts",
     "desktop:test:packaged": "vitest run --config vitest.desktop-packaged.config.ts",
     "desktop:checksums": "tsx scripts/desktop/artifact-checksums.ts",
-    "desktop:package:win": "pnpm run build && pnpm run desktop:stage && pnpm --filter @deepseek-ai/dsh-desktop package:win && pnpm run desktop:checksums",
+    "desktop:package:win": "pnpm run build:official && pnpm run desktop:stage && pnpm --filter @deepseek-ai/dsh-desktop package:win && pnpm run desktop:checksums",
     "clean": "tsx scripts/clean.ts",
     "change-scope": "tsx scripts/change-scope.ts",
     "typecheck": "npm run build:lib:host && npm run typecheck:contracts-ready",
