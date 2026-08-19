@@ -34,6 +34,7 @@ apps/web/dist/
 apps/desktop/dist/
 dist/desktop-npm/
 .artifacts/
+.dsh-build/
 .playwright-mcp/
 .orig
 .worktrees/
