@@ -25,6 +25,10 @@ extraResources:
     to: harness/node_modules
     filter:
       - '**/*'
+  - from: dist/openpets
+    to: openpets
+    filter:
+      - '**/*'
 win:
   icon: ../web/public/favicon.svg
   target:

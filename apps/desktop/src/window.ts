@@ -9,6 +9,7 @@ import {
 } from './failure-page.ts'
 import { desktopShellScript, parseDesktopAction, readDesktopShellStyle } from './desktop-ui.ts'
 import { decideDesktopNavigation } from './navigation.ts'
+import { launchOpenpets, openpetsExecutable } from './openpets.ts'
 import { createDesktopPet, type DesktopPetController } from './pet.ts'
 import { loadDesktopPreferences, saveDesktopPreferences } from './preferences.ts'
 import {
@@ -99,6 +100,9 @@ export async function createDesktopWindow(
     await window.webContents.insertCSS(shellStyle)
     await refreshShell()
   }
+  // The bundled OpenPets app replaces the native pet window in packaged
+  // builds; the native window stays the development and fallback pet.
+  const openpets = openpetsExecutable(process.resourcesPath)
   const ensurePet = async (): Promise<DesktopPetController> => {
     if (pet !== undefined) return pet
     petCreation ??= createDesktopPet({
@@ -124,6 +128,10 @@ export async function createDesktopWindow(
     return pet
   }
   const togglePet = async (): Promise<void> => {
+    if (openpets !== undefined) {
+      launchOpenpets(openpets)
+      return
+    }
     const companion = await ensurePet()
     companion.toggle()
   }
@@ -211,7 +219,10 @@ export async function createDesktopWindow(
   await window.loadURL(desktopStartingDocument())
   if (restored?.maximized === true) window.maximize()
   await installShell()
-  if (preferences.pet.enabled) await ensurePet()
+  if (preferences.pet.enabled) {
+    if (openpets !== undefined) launchOpenpets(openpets)
+    else await ensurePet()
+  }
   window.show()
   return { window, showHost, showFailure }
 }

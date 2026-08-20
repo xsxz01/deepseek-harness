@@ -209,7 +209,7 @@ export class PluginMarketplaceGateway extends TypertRemoteService {
    * @returns the current progress snapshot.
    */
   @Remote('progress')
-  async progress(): Promise<PluginMarketplaceProgress> {
+  progress(): PluginMarketplaceProgress {
     return this.state
   }
 

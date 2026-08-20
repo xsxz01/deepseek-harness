@@ -163,7 +163,7 @@ describe('PluginMarketplaceGateway profile transactions', () => {
     })
     const request = { source: 'dsh' as const, id: 'owner/plugin' as PluginMarketplaceEntryId }
 
-    await expect(service.progress()).resolves.toEqual({
+    expect(service.progress()).toEqual({
       status: 'idle', operation: null, stage: 'idle', percent: 0, packageName: null, detail: null,
     })
     const snapshot = await service.list({ source: 'dsh', query: '', page: 1, pageSize: 1 })
@@ -174,12 +174,12 @@ describe('PluginMarketplaceGateway profile transactions', () => {
 
     const pending = service.addPlugin(request)
     await vi.waitFor(() => { expect(calls).toHaveLength(1) })
-    await expect(service.progress()).resolves.toEqual(expect.objectContaining({
+    expect(service.progress()).toEqual(expect.objectContaining({
       status: 'running', operation: 'install', stage: 'install', packageName: 'plugin-package',
     }))
     release.resolve({ exitCode: 0, signal: null })
     await expect(pending).resolves.toEqual({ packageName: 'plugin-package', installed: true, restartRequired: true })
-    await expect(service.progress()).resolves.toEqual({
+    expect(service.progress()).toEqual({
       status: 'idle', operation: null, stage: 'idle', percent: 0, packageName: null, detail: null,
     })
   })

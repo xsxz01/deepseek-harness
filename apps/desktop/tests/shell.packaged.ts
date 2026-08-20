@@ -87,7 +87,7 @@ describe('packaged Electron desktop', () => {
       shell: true,
     })
     expect(cliResult.status, cliResult.stderr).toBe(0)
-    expect(cliResult.stdout.trim()).toBe('0.1.0-rc.5')
+    expect(cliResult.stdout.trim()).toBe('0.1.0-rc.8')
 
     application = await launch()
     await expect.poll(() => application?.page.url(), { timeout: 60_000 })

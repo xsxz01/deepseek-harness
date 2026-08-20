@@ -23,6 +23,13 @@ Development resolves `@deepseek-ai/dsh/desktop-host` from the built workspace pa
 
 `pnpm run desktop:test:e2e` runs the serial source-mode Electron product and lifecycle acceptance test after a build. `pnpm run desktop:package:win` rebuilds the repository, stages the verified runtime, runs Electron Builder, and writes `SHA256SUMS.txt`. `pnpm run desktop:test:packaged` validates the unpacked artifact, bundled Host, custom shell, and `dsh.cmd` on Windows. The release targets are an assisted NSIS installer and a portable zip; only NSIS installation registers PATH.
 
+
+## Builtin plugins and the companion app
+
+The packaged runtime ships four out-of-tree plugins pinned to published npm releases: the dsh-TUI terminal interface (`@deepseek-harness-tui/dsh-tui`), the dsh-web-ui plugin pack (`@linxin666/dsh-web-ui-all`), dsh-agent-teams (`@nanmicoder/dsh-agent-teams`), and dsh-at-file (`dsh-at-file`). They install into `resources/harness/node_modules`, show as installed in the plugin inventory, and resolve from any profile through the shared module fallback under `$DSH_HOME/profiles/node_modules`. `dsh tui` (also `dsh.cmd tui`) boots the dsh-TUI profile in the terminal; the web plugins are opt-in rows in a profile's `cordis.patch.yml`.
+
+The runtime stage bundles the OpenPets companion app when `DSH_OPENPETS_SOURCE` points at an OpenPets workspace checkout: the built app ships as `resources/openpets/openpets.exe`, and the desktop pet toggle launches it instead of the native companion window. Without the variable, or when the OpenPets build fails, the packaged app keeps the native pet window with an honest fallback note.
+
 ## Model Experience
 
 None. The desktop package supervises and presents the existing Web profile; it adds no model-visible message, tool, prompt section, or provider request field.

@@ -120,7 +120,8 @@ describe('PluginMarketplaceSettingsTab', () => {
     const back = screen.getByRole('button', { name: en.previousPage })
     fireEvent.click(back)
     await waitFor(() => { expect(list).toHaveBeenLastCalledWith('dsh', '', 1) })
-    expect((screen.getByRole('button', { name: en.previousPage }) as HTMLButtonElement).disabled).toBe(true)
+    const backAfter = screen.getByRole('button', { name: en.previousPage })
+    expect((backAfter as HTMLButtonElement).disabled).toBe(true)
   })
 
   it('renders the live mutation progress bar and hides it once idle', async () => {
@@ -137,7 +138,8 @@ describe('PluginMarketplaceSettingsTab', () => {
     expect(within(status).getByText(en.installing + ' 55%')).toBeTruthy()
     expect(within(status).getByText('plugin-package')).toBeTruthy()
     expect(within(status).getByText('Progress: added 5')).toBeTruthy()
-    expect((screen.getByRole('button', { name: en.installing }) as HTMLButtonElement).disabled).toBe(true)
+    const installing = screen.getByRole('button', { name: en.installing })
+    expect((installing as HTMLButtonElement).disabled).toBe(true)
 
     await act(async () => { deferred.resolve(mutation) })
     await waitFor(() => { expect(screen.queryByRole('status', { name: en.progress })).toBeNull() })

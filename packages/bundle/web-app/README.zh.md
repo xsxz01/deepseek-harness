@@ -24,6 +24,13 @@ Web 使用共享的有界 normal 默认值，在首次请求后最多再重试�
 
 该提示词段落位于系统提示词靠前位置，且在进程整个生命周期内稳定（端口是启动期事实），因此不会使跨轮次缓存失效。
 
+
+## 内置第三方插件
+
+打包的桌面发行版在运行时内置四个树外插件：dsh-TUI 终端界面、dsh-web-ui 插件包（`@linxin666/dsh-web-ui-all`）、dsh-agent-teams 与 dsh-at-file。它们是已安装但未启用的：Web profile 保持随附默认值，每个插件都是你 profile `cordis.patch.yml` 中的可选用行。设置里的插件清单会显示它们为已安装；共享模块回退可从任意 profile 解析它们，因此无需逐 profile 安装步骤。
+
+例如，要在 Web profile 启用 dsh-at-file，可在 `~/.dsh/profiles/web/cordis.patch.yml`（或该 profile 的 `patches` 列表）中添加一行以包名作为插件键的行；`@linxin666/dsh-web-ui-all` 与 `@nanmicoder/dsh-agent-teams` 同理。dsh-TUI 是独立 profile：运行 `dsh tui` 即可，无需在 Web 中启用。
+
 ## 已知限制与延期工作
 
 - **前端 dist 必须已构建**：对 dist 的 `require.resolve` 在激活时明确报错并给出构建提示；没有从源码直接服务的回退路径。

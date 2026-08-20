@@ -44,8 +44,15 @@ interface PluginInvocation {
   args: string[]
 }
 
+/** Boot the builtin dsh-TUI terminal interface (the dsh-tui profile). */
+interface TuiInvocation {
+  mode: 'tui'
+  /** Everything after `dsh tui`, verbatim, for the TUI's inner flags. */
+  args: string[]
+}
+
 /** The resolved `dsh` invocation. Help, version, and errors exit inside {@link parseDshArgs}. */
-export type DshInvocation = ProfileInvocation | DumpConfigInvocation | PluginInvocation
+export type DshInvocation = ProfileInvocation | DumpConfigInvocation | PluginInvocation | TuiInvocation
 
 /** Launcher flags shared by the default command and the `web` alias. */
 interface BootOptions {
@@ -168,6 +175,8 @@ export function parseDshArgs(argv: readonly string[], version: string): DshInvoc
       resolved = resolveBoot(web, 'web', options, args)
     })
 
+  const tui = program.command('tui').description('boot the builtin dsh-TUI terminal interface (the dsh-tui profile); the TUI\'s own flags follow')
+
   const plugin = program.command('plugin').description('manage a profile\'s plugins by forwarding the remaining arguments to pnpm in the profile directory')
   plugin
     .requiredOption('--profile <name>', 'the profile whose plugins to manage (initialized on first use)')
@@ -178,6 +187,17 @@ export function parseDshArgs(argv: readonly string[], version: string): DshInvoc
       if (options.profile === '') program.error('error: --profile needs a name')
       if (args.length === 0) program.error('error: plugin needs pnpm arguments to forward (e.g. add <package>)')
       resolved = { mode: 'plugin', profile: options.profile, args }
+    })
+
+  tui
+    .helpOption(false)
+    .allowUnknownOption()
+    .passThroughOptions()
+    .enablePositionalOptions()
+    .argument('[args...]', 'arguments for the TUI (see: dsh tui --help)')
+    .action((args: string[]) => {
+      rejectParentOptions('tui')
+      resolved = { mode: 'tui', args }
     })
 
   try {

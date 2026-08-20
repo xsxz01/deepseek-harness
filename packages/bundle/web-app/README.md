@@ -24,6 +24,13 @@ One source line and one prompt paragraph per session plus two managed-environmen
 
 The prompt section sits near the system prompt's head and is stable for the life of the process (the port is a boot fact), so it does not invalidate the cache across turns.
 
+
+## Builtin third-party plugins
+
+Packaged desktop releases ship four out-of-tree plugins in the runtime: the dsh-TUI terminal interface, the dsh-web-ui plugin pack (`@linxin666/dsh-web-ui-all`), dsh-agent-teams, and dsh-at-file. They are installed but not enabled: Web profiles stay on the shipped defaults, and each plugin is an opt-in row in your profile's `cordis.patch.yml`. The plugin inventory under Settings shows them as installed; the shared module fallback resolves them from any profile, so no per-profile install step is needed.
+
+For example, to enable dsh-at-file in the Web profile, add a row to `~/.dsh/profiles/web/cordis.patch.yml` (or the profile's `patches` list) with the package name as the plugin key; the same applies to `@linxin666/dsh-web-ui-all` and `@nanmicoder/dsh-agent-teams`. dsh-TUI is a separate profile: run `dsh tui` instead of enabling it in Web.
+
 ## Known Limitations and Deferred Work
 
 - **The frontend dist must be built** — `require.resolve` of the dist fails loud at activation with a build hint; there is no source-serving fallback.

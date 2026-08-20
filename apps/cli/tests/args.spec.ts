@@ -57,6 +57,13 @@ describe('parseDshArgs', () => {
       .toEqual({ mode: 'plugin', profile: 'tui', args: ['add', '--save-dev', 'x'] })
   })
 
+  it('routes the builtin TUI launcher, handing its flags to the profile', () => {
+    expect(parse(['tui'])).toEqual({ mode: 'tui', args: [] })
+    expect(parse(['tui', '--resume', 'abc'])).toEqual({ mode: 'tui', args: ['--resume', 'abc'] })
+    expect(parse(['tui', '--resume'])).toEqual({ mode: 'tui', args: ['--resume'] })
+    expect(parse(['tui', 'hello world'])).toEqual({ mode: 'tui', args: ['hello world'] })
+  })
+
   it('routes profile and web config dumps', () => {
     expect(parse(['--profile', 'web', '--dump-config']))
       .toEqual({ mode: 'dump-config', profile: 'web', defaultOnly: false, patches: [] })
@@ -72,7 +79,8 @@ describe('parseDshArgs', () => {
 
   it('rejects missing profile, removed flags, and contradictory inputs', () => {
     expect(exitCode([])).toBe(1)
-    expect(exitCode(['tui'])).toBe(1) // an app argument without --profile has no app to reach
+    expect(exitCode(['--profile', 'x', 'tui'])).toBe(1) // tui takes no parent options
+    expect(exitCode(['--profile', 'x', 'tui', '--resume', 'a'])).toBe(1)
     expect(exitCode(['--config', 'c.yml'])).toBe(1) // removed
     expect(exitCode(['-p', 'task'])).toBe(1) // removed
     expect(exitCode(['run', 'task'])).toBe(1) // app-owned task replaced the launcher subcommand

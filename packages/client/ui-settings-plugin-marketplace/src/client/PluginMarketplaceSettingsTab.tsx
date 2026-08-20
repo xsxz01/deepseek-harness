@@ -115,11 +115,12 @@ export function PluginMarketplaceSettingsTab({ install, list, progress, remove, 
       {snapshot.entries.length === 0 ? <p className={css.status}>{t('empty')}</p> : <ul className={css.cards}>
         {snapshot.entries.map((entry) => {
           const pending = busy?.id === entry.id
+          const pendingOperation = busy !== null && busy.id === entry.id ? busy.operation : undefined
           return <li className={css.card} key={entry.source + ':' + entry.id}>
             <div className={css.cardHeader}>
               <div className={css.identity}><strong>{entry.displayName}</strong><code>{entry.packageName}</code></div>
               <button className={entry.installed ? css.remove : css.install} type="button" disabled={busy !== null} onClick={() => { void mutate(entry) }}>
-                {pending && busy !== null ? t(busy.operation === 'install' ? 'installing' : 'removing') : t(entry.installed ? 'remove' : 'install')}
+                {pending ? t(pendingOperation === 'install' ? 'installing' : 'removing') : t(entry.installed ? 'remove' : 'install')}
               </button>
             </div>
             <p className={css.description}>{entry.description}</p>

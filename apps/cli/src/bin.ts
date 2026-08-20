@@ -47,6 +47,11 @@ switch (invocation.mode) {
     runDumpConfig(invocation.profile, invocation.defaultOnly, invocation.patches)
     break
   }
+  case 'tui': {
+    const { runTui } = await import('./tui.ts')
+    await runTui(invocation.args)
+    break
+  }
   default:
     invocation satisfies never
     throw new Error(`dsh: unhandled invocation mode ${JSON.stringify(invocation)}`)

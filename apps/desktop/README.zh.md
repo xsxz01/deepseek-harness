@@ -23,6 +23,13 @@ pnpm --filter @deepseek-ai/dsh-desktop start
 
 构建后，`pnpm run desktop:test:e2e` 会运行串行的源码模式 Electron 产品和生命周期验收测试。`pnpm run desktop:package:win` 会重新构建仓库、暂存经过校验的运行时、运行 Electron Builder，并写入 `SHA256SUMS.txt`。`pnpm run desktop:test:packaged` 会在 Windows 上验证解包产物、随包 Host、自定义壳层和 `dsh.cmd`。发行目标是交互式 NSIS 安装器和便携 zip；只有 NSIS 安装会注册 PATH。
 
+
+## 内置插件与桌面伙伴应用
+
+打包运行时内置四个固定到已发布 npm 版本的树外插件：dsh-TUI 终端界面（`@deepseek-harness-tui/dsh-tui`）、dsh-web-ui 插件包（`@linxin666/dsh-web-ui-all`）、dsh-agent-teams（`@nanmicoder/dsh-agent-teams`）与 dsh-at-file（`dsh-at-file`）。它们安装进 `resources/harness/node_modules`，在插件清单中显示为已安装，并通过 `$DSH_HOME/profiles/node_modules` 的共享模块回退从任意 profile 解析。`dsh tui`（或 `dsh.cmd tui`）在终端启动 dsh-TUI profile；Web 插件是 profile `cordis.patch.yml` 中的可选用行。
+
+当 `DSH_OPENPETS_SOURCE` 指向 OpenPets 工作区检出时，运行时暂存阶段会把 OpenPets 伙伴应用一并打包：构建产物以 `resources/openpets/openpets.exe` 随包发布，桌面宠物开关改为启动它而不是原生伙伴窗口。未设置该变量，或 OpenPets 构建失败时，打包应用保留原生宠物窗口并写入诚实的回退说明。
+
 ## Model Experience
 
 无。桌面包只监管和呈现现有 Web profile，不添加模型可见消息、工具、提示词段或提供方请求字段。

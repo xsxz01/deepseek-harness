@@ -2,6 +2,7 @@
 
 import { createHash } from 'node:crypto'
 import {
+  cpSync,
   existsSync,
   lstatSync,
   mkdirSync,
@@ -153,6 +154,71 @@ async function stageNodeRuntime(output: string, version: string, baseUrl: string
   return actual
 }
 
+/**
+ * One builtin out-of-tree plugin shipped with the desktop runtime, pinned to a
+ * published npm release. The runtime installs the plugin into its node_modules
+ * so the profile heal symlinks it into `$DSH_HOME/profiles/node_modules`, the
+ * plugin inventory lists it as installed, and any profile can mount it with a
+ * bare plugin row.
+ */
+export interface BuiltinPluginSpec {
+  readonly name: string
+  readonly version: string
+}
+
+/** The out-of-tree plugins the desktop product ships as builtins. */
+export const BUILTIN_PLUGINS: readonly BuiltinPluginSpec[] = [
+  { name: '@deepseek-harness-tui/dsh-tui', version: '0.8.5' },
+  { name: '@linxin666/dsh-web-ui-all', version: '0.2.5' },
+  { name: '@nanmicoder/dsh-agent-teams', version: '0.1.8' },
+  { name: 'dsh-at-file', version: '0.6.3' },
+]
+
+/** Registry spec for one builtin plugin: npm resolves a bare version from the registry. */
+export function builtinDependencySpec(plugin: BuiltinPluginSpec): string {
+  return plugin.version
+}
+
+/** The package directory name under node_modules for one package name. */
+function packageDirectoryName(name: string): string {
+  const scoped = name.split('/')
+  return scoped.length === 2 ? join(scoped[0] ?? '', scoped[1] ?? '') : name
+}
+
+/**
+ * Merge the packed workspace tarball map with the builtin registry plugins into
+ * one runtime manifest dependencies object. Packed tarballs win on name
+ * collisions: a workspace package is never shadowed by a builtin spec.
+ */
+export function runtimeDependencies(
+  packed: ReadonlyMap<string, { url: string; version: string }>,
+): Record<string, string> {
+  return {
+    ...Object.fromEntries(BUILTIN_PLUGINS.map(plugin => [plugin.name, builtinDependencySpec(plugin)])),
+    ...Object.fromEntries([...packed].map(([name, item]) => [name, item.url])),
+  }
+}
+
+/**
+ * Add the builtin plugins to an installed `@deepseek-ai/dsh` manifest so the
+ * profile heal's dependency closure covers them. The heal BFS walks the app
+ * manifest's `dependencies`, so without this patch the plugins would install
+ * into the runtime yet stay invisible to profiles.
+ * @param manifest - the installed CLI package manifest (mutated copy returned).
+ * @returns the manifest with the builtin specs merged into `dependencies`.
+ */
+export function addBuiltinDependencies<T extends { dependencies?: Record<string, string> }>(
+  manifest: T,
+): T & { dependencies: Record<string, string> } {
+  return {
+    ...manifest,
+    dependencies: {
+      ...manifest.dependencies,
+      ...Object.fromEntries(BUILTIN_PLUGINS.map(plugin => [plugin.name, builtinDependencySpec(plugin)])),
+    },
+  }
+}
+
 /** Install packed Harness artifacts with the exact Node runtime that will execute them. */
 function stageHarnessDependencies(output: string, packedDirectories: readonly string[]): Map<string, { url: string; version: string }> {
   const packed = packedDependencies(packedDirectories)
@@ -163,7 +229,7 @@ function stageHarnessDependencies(output: string, packedDirectories: readonly st
     name: '@deepseek-ai/dsh-desktop-runtime',
     version: cli.version,
     private: true,
-    dependencies: Object.fromEntries([...packed].map(([name, item]) => [name, item.url])),
+    dependencies: runtimeDependencies(packed),
   }
   writeFileSync(join(output, 'package.json'), `${JSON.stringify(manifest, null, 2)}\n`)
 
@@ -173,6 +239,20 @@ function stageHarnessDependencies(output: string, packedDirectories: readonly st
   delete environment.NODE_OPTIONS
   delete environment.NODE_PATH
   run(node, [npm, 'install', '--no-audit', '--no-fund', '--package-lock=false'], { cwd: output, env: environment })
+
+  // The heal walks the CLI app's manifest, not the runtime root, so the
+  // builtin plugins must appear in the installed CLI package's dependencies to
+  // reach profiles. npm resolves them from the registry at install time; this
+  // patch only records them in the app manifest for the heal's BFS.
+  const cliManifestPath = join(output, 'node_modules', '@deepseek-ai', 'dsh', 'package.json')
+  const cliManifest: unknown = JSON.parse(readFileSync(cliManifestPath, 'utf8'))
+  if (typeof cliManifest !== 'object' || cliManifest === null || Array.isArray(cliManifest)) {
+    throw new Error('desktop runtime: installed CLI manifest is not an object')
+  }
+  writeFileSync(
+    cliManifestPath,
+    `${JSON.stringify(addBuiltinDependencies(cliManifest as { dependencies?: Record<string, string> }), null, 2)}\n`,
+  )
 
   writeFileSync(join(output, 'package.json'), `${JSON.stringify({
     name: manifest.name,
@@ -198,6 +278,11 @@ function verifyRuntime(output: string, version: string): void {
   const reported = readFileSync(join(output, 'package.json'), 'utf8')
   if (!reported.includes(`"version": "${version}"`)) {
     throw new Error('desktop runtime: staged package version does not match packed CLI')
+  }
+  for (const plugin of BUILTIN_PLUGINS) {
+    if (!existsSync(join(output, 'node_modules', packageDirectoryName(plugin.name)))) {
+      throw new Error(`desktop runtime: builtin plugin ${plugin.name}@${plugin.version} is not installed`)
+    }
   }
   assertLinkFree(output)
 }
@@ -237,6 +322,54 @@ function writeThirdPartyNotices(
   writeFileSync(join(output, 'THIRD_PARTY_NOTICES.txt'), `${lines.join('\n')}\n`)
 }
 
+/** The OpenPets unpacked build's executable name (productName's executableName). */
+const OPENPETS_EXECUTABLE = 'openpets.exe'
+
+/** The OpenPets unpacked output directory relative to its workspace root. */
+const OPENPETS_UNPACKED_RELATIVE = join('apps', 'desktop', 'dist-electron', 'win-unpacked')
+
+/** The fallback note written when OpenPets cannot be bundled; the native pet stays. */
+function openpetsFallbackNote(message: string): string {
+  return ['OpenPets companion app is not bundled in this build: ' + message, 'The desktop app keeps its native pet window.', ''].join(String.fromCharCode(10))
+}
+
+/**
+ * Stage the bundled OpenPets companion app beside the runtime. The packaged
+ * desktop shell launches it as the pet when present and falls back to the
+ * native pet window otherwise. Staging must never fail the whole desktop
+ * release: a missing or unbuildable source keeps the native pet with an
+ * honest fallback note.
+ * @param outputRoot - the directory beside resources/harness (Electron extraResources root).
+ * @param sourceDir - the OpenPets workspace checkout, or undefined to skip.
+ */
+export function stageOpenpets(outputRoot: string, sourceDir: string | undefined): void {
+  const target = join(outputRoot, 'openpets')
+  rmSync(target, { recursive: true, force: true })
+  mkdirSync(target, { recursive: true })
+  if (sourceDir === undefined || !existsSync(join(sourceDir, 'package.json'))) {
+    writeFileSync(join(target, 'README.txt'), openpetsFallbackNote('no OpenPets source was provided (DSH_OPENPETS_SOURCE)'))
+    console.log('desktop runtime: OpenPets companion source missing; keeping the native pet')
+    return
+  }
+  const unpacked = join(sourceDir, OPENPETS_UNPACKED_RELATIVE)
+  if (!existsSync(join(unpacked, OPENPETS_EXECUTABLE))) {
+    try {
+      run('pnpm', ['--filter', '@open-pets/desktop', 'package:dir'], { cwd: sourceDir })
+    } catch (error) {
+      writeFileSync(join(target, 'README.txt'), openpetsFallbackNote(error instanceof Error ? error.message : String(error)))
+      console.warn('desktop runtime: OpenPets build failed; keeping the native pet')
+      return
+    }
+  }
+  if (!existsSync(join(unpacked, OPENPETS_EXECUTABLE))) {
+    writeFileSync(join(target, 'README.txt'), openpetsFallbackNote('the OpenPets build produced no openpets.exe'))
+    console.warn('desktop runtime: OpenPets build produced no openpets.exe; keeping the native pet')
+    return
+  }
+  cpSync(unpacked, target, { recursive: true })
+  console.log('desktop runtime: bundled OpenPets companion at ' + target)
+}
+
 /** Stage the complete resources/harness directory consumed by Electron Builder. */
 async function main(): Promise<void> {
   const { values } = parseArgs({
@@ -251,6 +384,7 @@ async function main(): Promise<void> {
   const output = resolve(root, values.output)
   const packedRoot = resolve(root, values['packed-output'])
   const baseUrl = process.env.DSH_NODE_DIST_BASE ?? DEFAULT_NODE_DIST_BASE
+  const openpetsSource = process.env.DSH_OPENPETS_SOURCE
 
   rmSync(output, { recursive: true, force: true })
   mkdirSync(output, { recursive: true })
@@ -261,6 +395,7 @@ async function main(): Promise<void> {
   if (cli === undefined) throw new Error('desktop runtime: staged package map omits @deepseek-ai/dsh')
   verifyRuntime(output, cli.version)
   const electronVersion = desktopElectronVersion(root)
+  stageOpenpets(dirname(output), openpetsSource === '' ? undefined : openpetsSource)
   const dependencies = installedPackageInventory(output)
   writeThirdPartyNotices(output, values['node-version'], electronVersion, dependencies)
   writeFileSync(join(output, 'desktop-runtime.json'), `${JSON.stringify({

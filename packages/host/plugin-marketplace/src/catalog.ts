@@ -424,7 +424,7 @@ export async function resolveMarketplaceEntry(
     if (!/^[A-Za-z0-9_.-]{1,120}$/u.test(id)) throw new Error('invalid marketplace plugin id')
     const detail = await fetchText(DSHPLUGIN_DETAIL + encodeURIComponent(id), options)
     const links = [...new Set([...detail.matchAll(/https?:\/\/github\.com\/([A-Za-z0-9_.-]+)\/([A-Za-z0-9_.-]+)/g)]
-      .map(match => match[1] + '/' + match[2]))]
+      .map(match => (match[1] ?? '') + '/' + (match[2] ?? '')))]
     const repositoryId = links.find(candidate => candidate !== DSHPLUGIN_HOME_REPO)
     if (repositoryId === undefined) throw new Error('plugin detail page exposes no GitHub repository')
     const [owner, repository] = repositoryId.split('/') as [string, string]
