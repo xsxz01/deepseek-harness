@@ -91,7 +91,8 @@ async function main(): Promise<void> {
     environment: loadLayeredEnv('dsh'),
     profile: 'web',
     patchFiles: [],
-    args: ['--host', '127.0.0.1', '--port', '0'],
+    // Electron loads the authenticated Host URL itself; the desktop process must never hand it to an external browser.
+    args: ['--host', '127.0.0.1', '--port', '0', '--no-open'],
     invocationPatches: [{
       id: 'web-runtime',
       config: { printUrl: false, surfaceContext: true, trustedHosts: [] },

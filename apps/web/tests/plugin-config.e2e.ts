@@ -8,7 +8,7 @@ import { readFile } from 'node:fs/promises'
 import { fileURLToPath } from 'node:url'
 import type { Browser, Page } from 'playwright'
 import { chromium } from 'playwright'
-import { afterAll, beforeAll, describe, expect, it, onTestFailed } from 'vitest'
+import { afterAll, beforeAll, describe, expect, it, onTestFailed, vi } from 'vitest'
 import { join } from 'node:path'
 import {
   assertFixtureInventory, captureStableAria, compareOrRefreshGolden,
@@ -18,6 +18,7 @@ import { ZH_BROWSER_LOCALE, saveFailureShot } from './support.ts'
 
 const SNAPSHOT_DIR = fileURLToPath(new URL('./snapshots/plugin-config', import.meta.url))
 const SECTION_EXPECTED = join(SNAPSHOT_DIR, 'section.expected.md')
+const MARKETPLACE_EXPECTED = join(SNAPSHOT_DIR, 'marketplace.expected.md')
 const MODE = webSnapshotMode()
 
 describe('web e2e: plugin configuration section', () => {
@@ -172,8 +173,38 @@ describe('web e2e: plugin configuration section', () => {
     expect(tripwire.pageErrors).toEqual([])
   }, 60_000)
 
+  it('browses the Host marketplace through the assembled Plugins section', async () => {
+    onTestFailed(() => saveFailureShot(page, 'web-e2e-plugin-marketplace'))
+    const originalFetch = globalThis.fetch
+    vi.stubGlobal('fetch', async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url
+      if (url.startsWith('https://dsh.do/api/packages')) {
+        return new Response(JSON.stringify({ total: 1, items: [{
+          id: 'fixture/market-bundle', name: 'fixture-market-bundle', displayName: 'Fixture Market Bundle',
+          description: 'Deterministic marketplace bundle from the assembled Host.', repoOwner: 'fixture',
+          repoName: 'market-bundle', npmPackageName: 'fixture-market-bundle', latestVersion: '1.2.3',
+          stars: 42, hasBundle: true, isVerified: true,
+        }] }))
+      }
+      return await originalFetch(input, init)
+    })
+    try {
+      const dialog = await openPlugins()
+      await dialog.getByRole('tab', { name: '插件市场', exact: true }).click()
+      await dialog.getByText('Fixture Market Bundle', { exact: true }).waitFor({ timeout: 10_000 })
+      expect(await dialog.getByText('fixture-market-bundle', { exact: true }).count()).toBe(1)
+      expect(await dialog.getByText('已认证', { exact: true }).count()).toBe(1)
+      expect(await dialog.getByRole('button', { name: '安装', exact: true }).count()).toBe(1)
+      const snapshot = await captureStableAria(page, '[role="dialog"]', scaffold.workspaceCwd)
+      await compareOrRefreshGolden(MARKETPLACE_EXPECTED, snapshot, MODE)
+      expect(tripwire.pageErrors).toEqual([])
+    } finally {
+      vi.stubGlobal('fetch', originalFetch)
+    }
+  }, 60_000)
+
   it.skipIf(MODE === 'record')('keeps the fixture inventory closed', async () => {
     expect(tripwire.warnings).toEqual([])
-    await assertFixtureInventory(SNAPSHOT_DIR, ['section.expected.md'])
+    await assertFixtureInventory(SNAPSHOT_DIR, ['marketplace.expected.md', 'section.expected.md'])
   })
 })

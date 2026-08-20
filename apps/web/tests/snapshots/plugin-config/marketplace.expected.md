@@ -1,0 +1,44 @@
+- dialog "设置":
+  - navigation:
+    - text: 设置
+    - button "通用设置":
+      - img
+      - text: 通用设置
+    - button "模型":
+      - img
+      - text: 模型
+    - button "插件":
+      - img
+      - text: 插件
+    - button "Agent 预设":
+      - img
+      - text: Agent 预设
+  - button "打开配置文件"
+  - button "关闭":
+    - img
+    - text: 关闭
+  - heading "插件" [level=2]
+  - paragraph: 配置和查看本部署已安装的插件。
+  - tablist "插件视图":
+    - tab "插件配置"
+    - tab "插件市场" [selected]
+    - tab "插件列表"
+  - tabpanel "插件市场":
+    - group "数据源":
+      - button "dsh.do" [pressed]
+      - button "GitHub"
+    - img
+    - searchbox "搜索市场插件"
+    - button "搜索"
+    - button "刷新"
+    - heading "市场插件" [level=3]
+    - text: 1 / 1
+    - list:
+      - listitem:
+        - strong: Fixture Market Bundle
+        - code: fixture-market-bundle
+        - button "安装"
+        - paragraph: Deterministic marketplace bundle from the assembled Host.
+        - text: 已认证 版本 1.2.3 Stars 42
+        - link "fixture/market-bundle":
+          - /url: https://github.com/fixture/market-bundle

@@ -1,6 +1,7 @@
 /** Supervision of the standard-Node Harness Host child process. */
 
 import { fork, spawn, type ChildProcess } from 'node:child_process'
+import { delimiter, dirname } from 'node:path'
 import type { Readable } from 'node:stream'
 import {
   parseDesktopHostEvent,
@@ -85,6 +86,17 @@ async function terminateProcessTree(
   }
 }
 
+/** Give the Host and its descendants the Node distribution selected by the desktop runtime. */
+function hostEnvironment(options: DesktopHostProcessOptions): NodeJS.ProcessEnv {
+  const environment = { ...(options.environment ?? process.env) }
+  const pathKey = Object.keys(environment).find(key => key.toUpperCase() === 'PATH') ?? 'PATH'
+  const current = environment[pathKey]
+  environment[pathKey] = current === undefined
+    ? dirname(options.runtime.execPath)
+    : dirname(options.runtime.execPath) + delimiter + current
+  return environment
+}
+
 /**
  * Fork a standard-Node Host and return ownership before readiness can settle.
  * @param options - runtime paths, deadlines, and child environment.
@@ -93,7 +105,7 @@ async function terminateProcessTree(
 export function startDesktopHost(options: DesktopHostProcessOptions): DesktopHostController {
   const child = fork(options.runtime.modulePath, [], {
     execPath: options.runtime.execPath,
-    env: options.environment ?? process.env,
+    env: hostEnvironment(options),
     stdio: ['ignore', 'pipe', 'pipe', 'ipc'],
   })
   forward(child.stdout, process.stdout)

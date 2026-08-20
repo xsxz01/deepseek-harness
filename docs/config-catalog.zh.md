@@ -851,6 +851,36 @@ export interface Config {
 
 来源：[`packages/host/frontend-static/src/index.ts:28`](../packages/host/frontend-static/src/index.ts)
 
+<a id="deepseek-aidsh-host-plugin-marketplace"></a>
+
+## `@deepseek-ai/dsh-host-plugin-marketplace`
+
+需要：`subprocess`
+
+```ts config-catalog
+/** Plugin marketplace deployment configuration. */
+export interface Config {
+  /** Existing profile whose dependencies and bundle layers are managed. */
+  profile: string
+  /** Executable that dispatches the pnpm command. */
+  packageManagerExecutable?: string
+  /** Deadline for each external provider request. */
+  requestTimeoutMs?: number
+  /** Maximum complete body size for each provider response. */
+  responseMaxBytes?: number
+  /** Deadline for one package-manager mutation. */
+  operationTimeoutMs?: number
+  /** Maximum catalog entries retained from one listing. */
+  maxEntries?: number
+  /** Collected byte limit for each package-manager output stream. */
+  outputMaxBytes?: number
+  /** Process termination and output-drain grace period. */
+  graceMs?: number
+}
+```
+
+来源：[`packages/host/plugin-marketplace/src/index.ts:33`](../packages/host/plugin-marketplace/src/index.ts)
+
 <a id="deepseek-aidsh-host-webserver"></a>
 
 ## `@deepseek-ai/dsh-host-webserver`
@@ -3219,6 +3249,7 @@ export interface Config {
 - `@deepseek-ai/dsh-client-ui-settings-general`（[`packages/client/ui-settings-general/src/index.ts`](../packages/client/ui-settings-general/src/index.ts)）
 - `@deepseek-ai/dsh-client-ui-settings-models`（[`packages/client/ui-settings-models/src/index.ts`](../packages/client/ui-settings-models/src/index.ts)）
 - `@deepseek-ai/dsh-client-ui-settings-plugin-inventory`（[`packages/client/ui-settings-plugin-inventory/src/index.ts`](../packages/client/ui-settings-plugin-inventory/src/index.ts)）
+- `@deepseek-ai/dsh-client-ui-settings-plugin-marketplace`（[`packages/client/ui-settings-plugin-marketplace/src/index.ts`](../packages/client/ui-settings-plugin-marketplace/src/index.ts)）
 - `@deepseek-ai/dsh-client-ui-settings-plugins`（[`packages/client/ui-settings-plugins/src/index.ts`](../packages/client/ui-settings-plugins/src/index.ts)）
 - `@deepseek-ai/dsh-client-ui-sidebar`（[`packages/client/ui-sidebar/src/index.ts`](../packages/client/ui-sidebar/src/index.ts)）
 - `@deepseek-ai/dsh-client-ui-skill`（[`packages/client/ui-skill/src/index.ts`](../packages/client/ui-skill/src/index.ts)）

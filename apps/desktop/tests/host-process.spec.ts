@@ -1,3 +1,4 @@
+import { dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
 import { startDesktopHost } from '../src/host-process.ts'
@@ -5,6 +6,20 @@ import { startDesktopHost } from '../src/host-process.ts'
 const fixture = (name: string): string => fileURLToPath(new URL('./fixtures/' + name, import.meta.url))
 
 describe('desktop Host process supervisor', () => {
+  it('prepends the selected Node distribution to the Host PATH', async () => {
+    const host = startDesktopHost({
+      runtime: { execPath: process.execPath, modulePath: fixture('host-environment.mjs') },
+      environment: { PATH: 'fixture-tail', DSH_TEST_NODE_DIR: dirname(process.execPath) },
+      startupTimeoutMs: 5_000,
+      shutdownTimeoutMs: 5_000,
+    })
+    try {
+      await expect(host.ready).resolves.toMatchObject({ type: 'ready' })
+    } finally {
+      await host.stop()
+    }
+  })
+
   it('publishes ownership before readiness and coalesces graceful stop', async () => {
     const host = startDesktopHost({
       runtime: { execPath: process.execPath, modulePath: fixture('host-ready.mjs') },
