@@ -10,7 +10,7 @@ Status: implemented
 
 ## 决策
 
-**内置插件以固定版本的 registry 依赖发货。** `scripts/desktop/stage-runtime.ts` 新增 `BUILTIN_PLUGINS` 列表，固定已发布版本的精确版本：`@deepseek-harness-tui/dsh-tui`、`@linxin666/dsh-web-ui-all`、`@nanmicoder/dsh-agent-teams` 与 `dsh-at-file`。运行时根 manifest 把它们合并到打包工作区 tarball 之前（冲突时 packed 优先），随包 `npm install` 从 registry 解析进 `resources/harness/node_modules`，安装后补丁再把它们写进已安装 `@deepseek-ai/dsh` manifest 的 `dependencies`，让 heal 的依赖闭包 BFS 在 `$DSH_HOME/profiles/node_modules` 下建立符号链接。任一内置缺失时 `verifyRuntime` 让暂存失败。已安装但未启用：Web 插件是 profile `cordis.patch.yml` 中的可选用行；插件清单显示它们为已安装，市场无需逐 profile 安装即可解析。
+**内置插件以固定版本的 registry 依赖发货。** `scripts/desktop/stage-runtime.ts` 新增 `BUILTIN_PLUGINS` 列表，固定已发布版本的精确版本：`@deepseek-harness-tui/dsh-tui`、`@linxin666/dsh-web-ui-all`、`@nanmicoder/dsh-agent-teams` 与 `dsh-at-file`。运行时根 manifest 把它们合并到打包工作区 tarball 之前（冲突时 packed 优先），随包 `npm install` 从 registry 解析进 `resources/harness/node_modules`，安装后补丁再把它们写进已安装 `@deepseek-ai/dsh` manifest 的 `dependencies`，让 heal 的依赖闭包 BFS 在 `$DSH_HOME/profiles/node_modules` 下建立符号链接。任一内置缺失时 `verifyRuntime` 让暂存失败。已安装但未启用：Web 插件是 profile `cordis.patch.yml` 中的可选用行；插件清单显示它们为已安装，市场无需逐 profile 安装即可解析。运行时 manifest 还固定 `BUILTIN_REACT_OVERRIDES`（`react`／`react-dom` 19.2.0）：dsh-tui 声明 react ^19.2.0，而 Web UI 插件带来 react ^18，若不覆盖，npm 会把 react 19 嵌套进 dsh-tui，同时被 hoist 的 `usehooks-ts` 解析到 react 18——reconciler 与组件对 hook dispatcher 的认知不一致，dsh-tui 崩溃并报 "Cannot read properties of null (reading 'useRef')"。dsh-tui 是 Node 运行时中唯一渲染 React 的消费者，因此该覆盖对整棵暂存树安全。
 
 **`dsh tui` 是原生启动器，而非上游 bin。** 上游 dsh-TUI 启动器通过 `dsh plugin --profile dsh-tui add` 自举，这需要运行时里的 pnpm；随包运行时没有 pnpm。`apps/cli/src/tui.ts` 改为先 heal profile 模块，首次使用时为 `$DSH_HOME/profiles/dsh-tui` 播种 base + TUI bundle 层，证明 bundle 可解析（源码检出时 fail loud），再复刻上游参数语义：`--resume`／裸 `-c`／`--continue` 读取已记录目标（从 `.dsh-tui/resume.txt` 回退到 `.dsh-cc/resume.txt`）并同时写入 `DSH_TUI_RESUME_SESSION` 与 `DSH_CC_RESUME_SESSION`；一个 workspace 目标成为 `DSH_TUI_WORKSPACE_TARGET`；其余参数在 `dsh-tui` profile 下透传给 `runProfile`，并强制 `NODE_ENV ??= 'production'`。`args.ts` 路由 `tui` 子命令（透传选项，拒绝父级选项）。
 
@@ -25,7 +25,7 @@ Status: implemented
 
 ## 验证
 
-stage-runtime specs 固定内置集合与 packed 优先合并；tui specs 固定 resume 目标读取、两个环境变量名、workspace 目标拦截、透传与一次性 profile 播种；openpets specs 固定可执行文件解析与暂存跳过／复制；args specs 固定 `tui` 路由与父级选项拒绝。全量 host typecheck 与桌面单测通过；打包产物重跑暂存运行时验证与打包验收套件。
+stage-runtime specs 固定内置集合、packed 优先合并与 React 覆盖；tui specs 固定 resume 目标读取、两个环境变量名、workspace 目标拦截、透传与一次性 profile 播种；openpets specs 固定可执行文件解析与暂存跳过／复制；args specs 固定 `tui` 路由与父级选项拒绝。全量 host typecheck 与桌面单测通过；打包产物重跑暂存运行时验证与打包验收套件。
 
 ## 后果
 

@@ -168,7 +168,7 @@ export interface BuiltinPluginSpec {
 
 /** The out-of-tree plugins the desktop product ships as builtins. */
 export const BUILTIN_PLUGINS: readonly BuiltinPluginSpec[] = [
-  { name: '@deepseek-harness-tui/dsh-tui', version: '0.8.5' },
+  { name: '@deepseek-harness-tui/dsh-tui', version: '0.8.6' },
   { name: '@linxin666/dsh-web-ui-all', version: '0.2.5' },
   { name: '@nanmicoder/dsh-agent-teams', version: '0.1.8' },
   { name: 'dsh-at-file', version: '0.6.3' },
@@ -177,6 +177,22 @@ export const BUILTIN_PLUGINS: readonly BuiltinPluginSpec[] = [
 /** Registry spec for one builtin plugin: npm resolves a bare version from the registry. */
 export function builtinDependencySpec(plugin: BuiltinPluginSpec): string {
   return plugin.version
+}
+
+/**
+ * npm `overrides` pinned on the staged runtime manifest so the React tree stays
+ * single-instance. dsh-tui declares react ^19.2.0 while the web UI plugins bring
+ * react ^18 to the same tree; without the override npm nests react 19 under
+ * dsh-tui, the hoisted usehooks-ts resolves react 18, and the reconciler (react
+ * 19) and the components (react 18) disagree on the hook dispatcher, crashing
+ * with "Cannot read properties of null (reading 'useRef')". The only React
+ * consumer that renders in the Node runtime is dsh-tui; browser-side plugins
+ * receive react from the web build, so pinning 19.2.0 is safe for the whole
+ * staged tree.
+ */
+export const BUILTIN_REACT_OVERRIDES: Readonly<Record<string, string>> = {
+  react: '19.2.0',
+  'react-dom': '19.2.0',
 }
 
 /** The package directory name under node_modules for one package name. */
@@ -230,6 +246,7 @@ function stageHarnessDependencies(output: string, packedDirectories: readonly st
     version: cli.version,
     private: true,
     dependencies: runtimeDependencies(packed),
+    overrides: BUILTIN_REACT_OVERRIDES,
   }
   writeFileSync(join(output, 'package.json'), `${JSON.stringify(manifest, null, 2)}\n`)
 

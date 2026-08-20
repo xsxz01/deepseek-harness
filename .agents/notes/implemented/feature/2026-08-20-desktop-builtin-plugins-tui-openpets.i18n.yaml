@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-08-20-desktop-builtin-plugins-tui-openpets.md
-2026-08-20-desktop-builtin-plugins-tui-openpets.md: 231c4d0918f3443d980541c39d890500645fc628
-2026-08-20-desktop-builtin-plugins-tui-openpets.zh.md: f4b9c80b969b74d78ccdaa28206aa50724eea693
+2026-08-20-desktop-builtin-plugins-tui-openpets.md: 7372120be1c5e82f56d93368aa14118c95df2e68
+2026-08-20-desktop-builtin-plugins-tui-openpets.zh.md: f26256be3137f8c522a17b239dc9e7c280393602
