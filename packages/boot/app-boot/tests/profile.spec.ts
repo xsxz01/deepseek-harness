@@ -144,7 +144,12 @@ describe('loadProfile', () => {
   })
 
   it('auto-initializes only shipped templates and fails loud otherwise', () => {
-    const anchor = stageInstallation({})
+    // An installation that provides the in-box bundles but not the out-of-tree
+    // rows (a source checkout) seeds the resolvable layers and drops the rest.
+    const anchor = stageInstallation({
+      '@deepseek-ai/dsh-base': { patch: '[]\n' },
+      '@deepseek-ai/dsh-web-app': { patch: '[]\n' },
+    })
     const home = tmp()
     expect(() => loadProfile('t', 'custom', anchor, home))
       .toThrow('profile "custom" does not exist')
@@ -152,13 +157,23 @@ describe('loadProfile', () => {
     // cannot be asserted to fail here: the source-plane test runner resolves
     // @deepseek-ai/* through tsconfig paths regardless of the staged anchor.
     expect(PROFILE_TEMPLATES.web).toContain('@deepseek-ai/dsh-base')
-    try {
-      loadProfile('t', 'web', anchor, home)
-    } catch {
-      // Resolution failure is the plain-Node outcome for this empty anchor.
-    }
+    loadProfile('t', 'web', anchor, home)
     expect(readProfileManifest('t', resolveProfileDir('web', home)).dsh?.profile?.bundles)
-      .toEqual([...PROFILE_TEMPLATES.web ?? []])
+      .toEqual(['@deepseek-ai/dsh-base', '@deepseek-ai/dsh-web-app'])
+  })
+
+  it('seeds the full web template when the installation ships the builtin bundles', () => {
+    const anchor = stageInstallation({
+      '@deepseek-ai/dsh-base': { patch: '[]\n' },
+      '@deepseek-ai/dsh-web-app': { patch: '[]\n' },
+      '@linxin666/dsh-web-ui-all': { patch: '[]\n' },
+      '@nanmicoder/dsh-agent-teams': { patch: '[]\n' },
+      'dsh-at-file': { patch: '[]\n' },
+    })
+    const home = tmp()
+    loadProfile('t', 'web', anchor, home)
+    expect(readProfileManifest('t', resolveProfileDir('web', home)).dsh?.profile?.bundles)
+      .toEqual([...(PROFILE_TEMPLATES.web ?? [])])
   })
 
   it('normalizes only the exact installation-owned headless bundle tuple', () => {
@@ -185,6 +200,32 @@ describe('loadProfile', () => {
     loadProfile('t', 'headless', anchor, customHome)
     expect(readProfileManifest('t', custom).dsh?.profile?.bundles).toEqual([
       '@deepseek-ai/dsh-base', '@deepseek-ai/dsh-web-app', '@deepseek-ai/dsh-headless', 'custom-bundle',
+    ])
+  })
+
+  it('normalizes a stock web profile to the shipped template on an upgrade', () => {
+    const anchor = stageInstallation({
+      '@deepseek-ai/dsh-base': { patch: '[]\n' },
+      '@deepseek-ai/dsh-web-app': { patch: '[]\n' },
+      '@linxin666/dsh-web-ui-all': { patch: '[]\n' },
+      '@nanmicoder/dsh-agent-teams': { patch: '[]\n' },
+      'dsh-at-file': { patch: '[]\n' },
+      'custom-bundle': { patch: '[]\n' },
+    })
+    const home = tmp()
+    const stock = resolveProfileDir('web', home)
+    initProfile(stock, ['@deepseek-ai/dsh-base', '@deepseek-ai/dsh-web-app'])
+    loadProfile('t', 'web', anchor, home)
+    expect(readProfileManifest('t', stock).dsh?.profile?.bundles)
+      .toEqual([...(PROFILE_TEMPLATES.web ?? [])])
+
+    // A user-extended list stays untouched.
+    const customHome = tmp()
+    const custom = resolveProfileDir('web', customHome)
+    initProfile(custom, ['@deepseek-ai/dsh-base', '@deepseek-ai/dsh-web-app', 'custom-bundle'])
+    loadProfile('t', 'web', anchor, customHome)
+    expect(readProfileManifest('t', custom).dsh?.profile?.bundles).toEqual([
+      '@deepseek-ai/dsh-base', '@deepseek-ai/dsh-web-app', 'custom-bundle',
     ])
   })
 

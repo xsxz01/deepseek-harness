@@ -148,8 +148,13 @@ async function stageNodeRuntime(output: string, version: string, baseUrl: string
   if (!existsSync(join(extracted, 'node.exe'))) {
     throw new Error(`desktop runtime: ${filename} did not contain node.exe`)
   }
-  rmSync(output, { recursive: true, force: true })
-  renameSync(extracted, output)
+  // Keep mode reuses the interrupted tree (npm no-ops over completed packages);
+  // the archive still downloads for its checksum while the existing node tree
+  // stays in place.
+  if (process.env.DSH_STAGE_KEEP_RUNTIME !== '1') {
+    rmSync(output, { recursive: true, force: true })
+    renameSync(extracted, output)
+  }
   rmSync(temporary, { recursive: true, force: true })
   return actual
 }
@@ -190,6 +195,34 @@ export function builtinDependencySpec(plugin: BuiltinPluginSpec): string {
  * receive react from the web build, so pinning 19.2.0 is safe for the whole
  * staged tree.
  */
+/**
+ * dsh-tui and its bundled @dsh-std packages publish `workspace:*` dependency
+ * specs (upstream workspace links). A fresh install resolves them through the
+ * tarball's bundledDependencies, but a resume install re-resolves the
+ * installed manifests and npm rejects the workspace protocol, so pin the
+ * bundled versions before the re-run.
+ */
+function pinBundledWorkspaceDeps(output: string): void {
+  const tuiDir = join(output, 'node_modules', '@deepseek-harness-tui', 'dsh-tui')
+  const manifests = [join(tuiDir, 'package.json')]
+  const stdDir = join(tuiDir, 'node_modules', '@dsh-std')
+  if (existsSync(stdDir)) {
+    for (const name of readdirSync(stdDir)) manifests.push(join(stdDir, name, 'package.json'))
+  }
+  for (const manifestPath of manifests) {
+    if (!existsSync(manifestPath)) continue
+    const manifest = JSON.parse(readFileSync(manifestPath, 'utf8')) as { dependencies?: Record<string, string> }
+    let changed = false
+    for (const key of Object.keys(manifest.dependencies ?? {})) {
+      if (manifest.dependencies[key] === 'workspace:*') {
+        manifest.dependencies[key] = '0.1.0'
+        changed = true
+      }
+    }
+    if (changed) writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`)
+  }
+}
+
 export const BUILTIN_REACT_OVERRIDES: Readonly<Record<string, string>> = {
   react: '19.2.0',
   'react-dom': '19.2.0',
@@ -255,6 +288,7 @@ function stageHarnessDependencies(output: string, packedDirectories: readonly st
   const environment = { ...process.env }
   delete environment.NODE_OPTIONS
   delete environment.NODE_PATH
+  pinBundledWorkspaceDeps(output)
   run(node, [npm, 'install', '--no-audit', '--no-fund', '--package-lock=false'], { cwd: output, env: environment })
 
   // The heal walks the CLI app's manifest, not the runtime root, so the
@@ -403,7 +437,12 @@ async function main(): Promise<void> {
   const baseUrl = process.env.DSH_NODE_DIST_BASE ?? DEFAULT_NODE_DIST_BASE
   const openpetsSource = process.env.DSH_OPENPETS_SOURCE
 
-  rmSync(output, { recursive: true, force: true })
+  // DSH_STAGE_KEEP_RUNTIME=1 resumes an interrupted stage: reuse the existing
+  // runtime directory so npm's install is a no-op re-check over completed
+  // packages (used when a postinstall download is supplied out-of-band).
+  if (process.env.DSH_STAGE_KEEP_RUNTIME !== '1') {
+    rmSync(output, { recursive: true, force: true })
+  }
   mkdirSync(output, { recursive: true })
   const packedDirectories = packReleaseInputs(root, packedRoot)
   const checksum = await stageNodeRuntime(join(output, 'node'), values['node-version'], baseUrl)

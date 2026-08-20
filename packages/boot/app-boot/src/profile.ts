@@ -112,12 +112,22 @@ export function resolveProfileDir(name: string, home: string = resolveDshHome())
 
 /** The shipped profile templates auto-initialized on first use, by name. */
 export const PROFILE_TEMPLATES: Record<string, readonly string[]> = {
-  web: ['@deepseek-ai/dsh-base', '@deepseek-ai/dsh-web-app'],
+  // The desktop runtime ships the out-of-tree bundles after the web-app layer;
+  // a source checkout seeds only the layers its own installation resolves
+  // (loadProfile filters unresolvable template entries).
+  web: [
+    '@deepseek-ai/dsh-base',
+    '@deepseek-ai/dsh-web-app',
+    '@linxin666/dsh-web-ui-all',
+    '@nanmicoder/dsh-agent-teams',
+    'dsh-at-file',
+  ],
   headless: ['@deepseek-ai/dsh-base', '@deepseek-ai/dsh-headless'],
 }
 
 /** Installation-owned bundle tuples normalized to the shipped template. */
 const INSTALLATION_OWNED_PROFILE_TUPLES: Record<string, readonly string[]> = {
+  web: ['@deepseek-ai/dsh-base', '@deepseek-ai/dsh-web-app'],
   headless: ['@deepseek-ai/dsh-base', '@deepseek-ai/dsh-web-app', '@deepseek-ai/dsh-headless'],
 }
 
@@ -293,13 +303,22 @@ function sameBundles(left: readonly string[], right: readonly string[]): boolean
 /**
  * Normalize an exact installation-owned bundle tuple to its shipped template
  * while preserving every other manifest field. Any other list is user-owned.
+ * The upgrade only happens when this installation can resolve the whole new
+ * template: a source checkout seeds the same old tuple after filtering
+ * unresolvable template rows, and must not be normalized into a template it
+ * cannot serve.
  */
-function normalizeShippedProfile(name: string, dir: string, manifest: ProfileManifest): ProfileManifest {
+function normalizeShippedProfile(
+  name: string, dir: string, manifest: ProfileManifest, installAnchor: string,
+): ProfileManifest {
   const installationOwned = INSTALLATION_OWNED_PROFILE_TUPLES[name]
   const current = PROFILE_TEMPLATES[name]
   const bundles = manifest.dsh?.profile?.bundles
   if (installationOwned === undefined || current === undefined || bundles === undefined
     || !sameBundles(bundles, installationOwned)) return manifest
+  if (!current.every(packageName => packageDirFromAnchor(installAnchor, packageName) !== undefined)) {
+    return manifest
+  }
   const normalized: ProfileManifest = {
     ...manifest,
     dsh: {
@@ -380,9 +399,14 @@ export function loadProfile(
         `${binName}: profile ${JSON.stringify(name)} does not exist; create it with 'dsh plugin --profile ${name} add <package>'`,
       )
     }
-    initProfile(dir, template)
+    // Seed only the template layers this installation can resolve: the desktop
+    // runtime ships the out-of-tree bundles, while a source checkout does not
+    // and must not fail a fresh web profile on an unresolvable row.
+    initProfile(dir, template.filter(packageName =>
+      packageDirFromAnchor(installAnchor, packageName) !== undefined,
+    ))
   }
-  const manifest = normalizeShippedProfile(name, dir, readProfileManifest(binName, dir))
+  const manifest = normalizeShippedProfile(name, dir, readProfileManifest(binName, dir), installAnchor)
   // A hand-written profile manifest may omit the dsh section entirely.
   const bundles = manifest.dsh?.profile?.bundles ?? []
   const layers = bundles.map((packageName): ProfileLayer => {
