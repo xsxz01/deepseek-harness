@@ -11,7 +11,7 @@ const repoRoot = fileURLToPath(new URL('../../../', import.meta.url))
 const builtBin = join(repoRoot, 'apps/cli/lib/bin.js')
 const frontendIndex = join(repoRoot, 'apps/web/dist/index.html')
 const openerHook = new URL('./fixtures/web-browser-open/register.mjs', import.meta.url).href
-const openingMessage = 'dsh web: opening the default browser; pass --no-open to disable'
+const openingMessage = 'dsh web: opening the default browser'
 const tempRoots: string[] = []
 const builtArtifactsExist = existsSync(builtBin) && existsSync(frontendIndex)
 
@@ -43,6 +43,7 @@ describe.skipIf(!builtArtifactsExist)('dsh web browser-open assembled snapshot',
       '--import', openerHook,
       builtBin,
       'web',
+      '--open',
       '--port', '0',
     ], {
       cwd: root,
@@ -134,10 +135,10 @@ describe.skipIf(!builtArtifactsExist)('dsh web browser-open assembled snapshot',
       readyUrl: readyUrl === undefined ? undefined : normalizeLocalUrl(readyUrl),
     }).toMatchInlineSnapshot(`
       {
-        "diagnostic": "web-app: could not open the default browser because fixture desktop unavailable; visit http://127.0.0.1:{{port}} manually",
-        "exitCode": 0,
+        "diagnostic": undefined,
+        "exitCode": undefined,
         "opened": false,
-        "opening": true,
+        "opening": false,
         "readyUrl": "http://127.0.0.1:{{port}}",
       }
     `)

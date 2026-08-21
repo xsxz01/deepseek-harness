@@ -128,11 +128,11 @@ describe('web-app runtime glue', () => {
       trustedHosts: ['192.168.1.5', 'lab.internal'],
     })
     expect(log).toHaveBeenCalledWith('dsh web: http://127.0.0.1:4567 (LAN: http://192.168.1.5:4567)')
-    expect(log).toHaveBeenCalledWith('dsh web: opening the default browser; pass --no-open to disable')
+    expect(log).toHaveBeenCalledWith('dsh web: opening the default browser')
     expect(openBrowser).toHaveBeenCalledWith('http://127.0.0.1:4567')
     expect(lifecycle).toEqual([
       'dsh web: http://127.0.0.1:4567 (LAN: http://192.168.1.5:4567)',
-      'dsh web: opening the default browser; pass --no-open to disable',
+      'dsh web: opening the default browser',
       'open:http://127.0.0.1:4567',
     ])
     const assembly = await ctx.systemPrompt.assemble()
@@ -310,7 +310,7 @@ describe('web-app runtime glue', () => {
     const diagnostic = vi.spyOn(console, 'error').mockImplementation(() => {})
     apply(ctx, new Config({ openBrowser: true, printUrl: false, surfaceContext: false, trustedHosts: [] }))
     await new Promise(resolve => setTimeout(resolve, 0))
-    expect(log).toHaveBeenCalledWith('dsh web: opening the default browser; pass --no-open to disable')
+    expect(log).toHaveBeenCalledWith('dsh web: opening the default browser')
     expect(diagnostic).toHaveBeenCalledWith(
       `web-app: could not open the default browser because ${reason}; visit http://127.0.0.1:4567 manually`,
     )

@@ -213,10 +213,13 @@ function pinBundledWorkspaceDeps(output: string): void {
     if (!existsSync(manifestPath)) continue
     const manifest = JSON.parse(readFileSync(manifestPath, 'utf8')) as { dependencies?: Record<string, string> }
     let changed = false
-    for (const key of Object.keys(manifest.dependencies ?? {})) {
-      if (manifest.dependencies[key] === 'workspace:*') {
-        manifest.dependencies[key] = '0.1.0'
-        changed = true
+    const dependencies = manifest.dependencies
+    if (dependencies !== undefined) {
+      for (const key of Object.keys(dependencies)) {
+        if (dependencies[key] === 'workspace:*') {
+          dependencies[key] = '0.1.0'
+          changed = true
+        }
       }
     }
     if (changed) writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`)

@@ -20,7 +20,7 @@ Install `Node.js`, then run:
 npx @deepseek-ai/dsh web
 ```
 
-The command starts the Web UI at `http://127.0.0.1:3080` by default and opens it in the default browser for a local launch. An SSH launch only prints the host URL because the SSH client or editor owns the local forwarded address. Pass `--no-open` to run the server without opening a browser. See [Web UI guide](docs/user/guide/index.md).
+The command starts the Web UI at `http://127.0.0.1:3080` by default and prints the host URL. An SSH launch only prints the host URL too, because the SSH client or editor owns the local forwarded address. Pass `--open` to open the URL in the default browser for a local launch. See [Web UI guide](docs/user/guide/index.md).
 
 ### Run from source
 

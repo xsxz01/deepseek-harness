@@ -56,7 +56,7 @@ export interface Config {
 }
 
 export const Config: z<Config> = z.object({
-  openBrowser: z.boolean().default(true),
+  openBrowser: z.boolean().default(false),
   printUrl: z.boolean().default(true),
   surfaceContext: z.boolean().default(true),
   trustedHosts: z.array(String).default([]),
@@ -265,7 +265,7 @@ export function apply(ctx: Context, config: Config): void {
         console.log(`dsh web: ${webUrl}${lanCandidate === undefined ? '' : ` (LAN: http://${lanCandidate}:${String(port)})`}`)
       }
       if (handoffBrowser) {
-        console.log('dsh web: opening the default browser; pass --no-open to disable')
+        console.log('dsh web: opening the default browser')
         void internals.openBrowser(webUrl).catch((error: unknown) => {
           const reason = error instanceof Error ? error.message : String(error)
           console.error(`web-app: could not open the default browser because ${reason}; visit ${webUrl} manually`)

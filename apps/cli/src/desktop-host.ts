@@ -92,7 +92,7 @@ async function main(): Promise<void> {
     profile: 'web',
     patchFiles: [],
     // Electron loads the authenticated Host URL itself; the desktop process must never hand it to an external browser.
-    args: ['--host', '127.0.0.1', '--port', '0', '--no-open'],
+    args: ['--host', '127.0.0.1', '--port', '0'],
     invocationPatches: [{
       id: 'web-runtime',
       config: { printUrl: false, surfaceContext: true, trustedHosts: [] },
