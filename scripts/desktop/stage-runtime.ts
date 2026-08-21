@@ -292,6 +292,16 @@ function stageHarnessDependencies(output: string, packedDirectories: readonly st
   delete environment.NODE_OPTIONS
   delete environment.NODE_PATH
   pinBundledWorkspaceDeps(output)
+  // Keep mode preserves the interrupted tree, but npm no-ops over packages whose
+  // installed version already matches the spec, so drop the packed workspace
+  // packages to force a reinstall from the fresh local tarballs (their lib/
+  // carries this build's code). Third-party trees like cloudflared stay put.
+  if (process.env.DSH_STAGE_KEEP_RUNTIME === '1') {
+    for (const name of packed.keys()) {
+      const installed = join(output, 'node_modules', packageDirectoryName(name))
+      if (existsSync(installed)) rmSync(installed, { recursive: true, force: true })
+    }
+  }
   run(node, [npm, 'install', '--no-audit', '--no-fund', '--package-lock=false'], { cwd: output, env: environment })
 
   // The heal walks the CLI app's manifest, not the runtime root, so the
