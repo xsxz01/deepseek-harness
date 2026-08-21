@@ -231,6 +231,22 @@ export const BUILTIN_REACT_OVERRIDES: Readonly<Record<string, string>> = {
   'react-dom': '19.2.0',
 }
 
+/**
+ * npm overrides pin the `dependencies` react but do not cover the
+ * `react-reconciler` peerDependencies, so dsh-tui's reconciler pulls a
+ * newer nested react (19.2.8) beside the overridden top-level 19.2.0. Two
+ * react instances leave the top-level ReactSharedInternals.H unset and the
+ * TUI crashes in usehooks-ts' useRef. Drop the nested copies so the whole
+ * dsh-tui subtree resolves the single top-level react.
+ */
+function dedupeTuiReact(output: string): void {
+  const tuiDir = join(output, 'node_modules', '@deepseek-harness-tui', 'dsh-tui')
+  for (const name of ['react', 'react-dom']) {
+    const nested = join(tuiDir, 'node_modules', name)
+    if (existsSync(nested)) rmSync(nested, { recursive: true, force: true })
+  }
+}
+
 /** The package directory name under node_modules for one package name. */
 function packageDirectoryName(name: string): string {
   const scoped = name.split('/')
@@ -303,6 +319,7 @@ function stageHarnessDependencies(output: string, packedDirectories: readonly st
     }
   }
   run(node, [npm, 'install', '--no-audit', '--no-fund', '--package-lock=false'], { cwd: output, env: environment })
+  dedupeTuiReact(output)
 
   // The heal walks the CLI app's manifest, not the runtime root, so the
   // builtin plugins must appear in the installed CLI package's dependencies to
