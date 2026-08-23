@@ -1,5 +1,5 @@
 import { spawn, spawnSync, type ChildProcess } from 'node:child_process'
-import { mkdtempSync, rmSync } from 'node:fs'
+import { mkdtempSync, readFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { chromium, type Browser, type Page } from 'playwright'
@@ -16,6 +16,7 @@ const output = process.env.DSH_DESKTOP_PACKAGED_OUTPUT ?? join(import.meta.dirna
 const unpacked = join(output, 'win-unpacked')
 const executable = join(unpacked, 'DeepSeek Harness.exe')
 const cli = join(unpacked, 'dsh.cmd')
+const packagedVersion = JSON.parse(readFileSync(join(import.meta.dirname, '..', 'package.json'), 'utf8')).version as string
 const electronEnvironment = { ...process.env }
 delete electronEnvironment.ELECTRON_RUN_AS_NODE
 let application: PackagedApplication | undefined
@@ -41,6 +42,9 @@ function childNodePids(parentPid: number): number[] {
 
 async function launch(): Promise<PackagedApplication> {
   const userData = mkdtempSync(join(tmpdir(), 'dsh-desktop-packaged-'))
+  // Isolate the harness home so the packaged host never collides with a
+  // running dsh instance (e.g. the task-board ledger's single-owner lock).
+  electronEnvironment.DSH_HOME = join(userData, 'dsh-home')
   const child = spawn(executable, ['--remote-debugging-port=0', '--user-data-dir=' + userData], {
     env: electronEnvironment,
     stdio: ['ignore', 'ignore', 'pipe'],
@@ -87,7 +91,7 @@ describe('packaged Electron desktop', () => {
       shell: true,
     })
     expect(cliResult.status, cliResult.stderr).toBe(0)
-    expect(cliResult.stdout.trim()).toBe('0.1.0-rc.8')
+    expect(cliResult.stdout.trim()).toBe(packagedVersion)
 
     application = await launch()
     await expect.poll(() => application?.page.url(), { timeout: 60_000 })
