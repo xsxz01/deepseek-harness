@@ -9,7 +9,7 @@ overrides:
   '@deepseek-ai/schemastery': link:vendor/schemastery
 
 patchedDependencies:
-  app-builder-lib@26.15.3: 569d1bc21dfaa081fd42e0121746e4aec482f7d61e7ac59631b55e9aeeee0478
+  app-builder-lib@26.15.3: a42b182ca12058561375679525230b1db8c33c5d05e7bdc5beff1bc8726cfe6f
   node-pty@1.2.0-beta.15: b40ae545608897914bd25fb009c97eeac478c34e8a910298ddcb01b746534bb0
 
 importers:
@@ -17911,7 +17911,7 @@ snapshots:
     dependencies:
       '@types/http-cache-semantics': 4.2.0
       '@types/keyv': 3.1.4
-      '@types/node': 26.2.0
+      '@types/node': 22.20.0
       '@types/responselike': 1.0.3
 
   '@types/chai@5.2.3':
@@ -18048,7 +18048,7 @@ snapshots:
 
   '@types/fs-extra@9.0.13':
     dependencies:
-      '@types/node': 26.2.0
+      '@types/node': 22.20.0
 
   '@types/geojson@7946.0.16': {}
 
@@ -18073,7 +18073,7 @@ snapshots:
 
   '@types/keyv@3.1.4':
     dependencies:
-      '@types/node': 26.2.0
+      '@types/node': 22.20.0
 
   '@types/linkify-it@5.0.0': {}
 
@@ -18109,6 +18109,7 @@ snapshots:
   '@types/node@26.2.0':
     dependencies:
       undici-types: 8.3.0
+    optional: true
 
   '@types/picomatch@3.0.2': {}
 
@@ -18125,7 +18126,7 @@ snapshots:
 
   '@types/responselike@1.0.3':
     dependencies:
-      '@types/node': 26.2.0
+      '@types/node': 22.20.0
 
   '@types/retry@0.12.0': {}
 
@@ -18198,7 +18199,7 @@ snapshots:
       obug: 2.1.4
       std-env: 4.2.0
       tinyrainbow: 3.1.1
-      vitest: 4.1.8(@opentelemetry/api@1.9.1)(@types/node@25.9.3)(@vitest/coverage-v8@4.1.8)(jsdom@29.1.1(@noble/hashes@2.3.0))(vite@8.0.16(@types/node@26.2.0)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.23.12)(yaml@2.9.0))
+      vitest: 4.1.8(@opentelemetry/api@1.9.0)(@types/node@22.20.0)(@vitest/coverage-v8@4.1.8)(jsdom@29.1.1(@noble/hashes@2.3.0))(vite@6.4.3(@types/node@22.20.0)(jiti@2.7.0)(lightningcss@1.33.0)(tsx@4.22.4)(yaml@2.9.0))
     optional: true
 
   '@vitest/expect@4.1.11':
@@ -18593,7 +18594,7 @@ snapshots:
 
   anynum@1.0.0: {}
 
-  app-builder-lib@26.15.3(patch_hash=569d1bc21dfaa081fd42e0121746e4aec482f7d61e7ac59631b55e9aeeee0478)(dmg-builder@26.15.3)(electron-builder-squirrel-windows@26.15.3):
+  app-builder-lib@26.15.3(patch_hash=a42b182ca12058561375679525230b1db8c33c5d05e7bdc5beff1bc8726cfe6f)(dmg-builder@26.15.3)(electron-builder-squirrel-windows@26.15.3):
     dependencies:
       '@electron/asar': 3.4.1
       '@electron/fuses': 1.8.0
@@ -19199,7 +19200,7 @@ snapshots:
 
   dmg-builder@26.15.3(electron-builder-squirrel-windows@26.15.3):
     dependencies:
-      app-builder-lib: 26.15.3(patch_hash=569d1bc21dfaa081fd42e0121746e4aec482f7d61e7ac59631b55e9aeeee0478)(dmg-builder@26.15.3)(electron-builder-squirrel-windows@26.15.3)
+      app-builder-lib: 26.15.3(patch_hash=a42b182ca12058561375679525230b1db8c33c5d05e7bdc5beff1bc8726cfe6f)(dmg-builder@26.15.3)(electron-builder-squirrel-windows@26.15.3)
       builder-util: 26.15.3
       fs-extra: 10.1.0
       js-yaml: 4.3.1
@@ -19266,7 +19267,7 @@ snapshots:
 
   electron-builder-squirrel-windows@26.15.3(dmg-builder@26.15.3):
     dependencies:
-      app-builder-lib: 26.15.3(patch_hash=569d1bc21dfaa081fd42e0121746e4aec482f7d61e7ac59631b55e9aeeee0478)(dmg-builder@26.15.3)(electron-builder-squirrel-windows@26.15.3)
+      app-builder-lib: 26.15.3(patch_hash=a42b182ca12058561375679525230b1db8c33c5d05e7bdc5beff1bc8726cfe6f)(dmg-builder@26.15.3)(electron-builder-squirrel-windows@26.15.3)
       builder-util: 26.15.3
       electron-winstaller: 5.4.0
     transitivePeerDependencies:
@@ -19275,7 +19276,7 @@ snapshots:
 
   electron-builder@26.15.3(electron-builder-squirrel-windows@26.15.3):
     dependencies:
-      app-builder-lib: 26.15.3(patch_hash=569d1bc21dfaa081fd42e0121746e4aec482f7d61e7ac59631b55e9aeeee0478)(dmg-builder@26.15.3)(electron-builder-squirrel-windows@26.15.3)
+      app-builder-lib: 26.15.3(patch_hash=a42b182ca12058561375679525230b1db8c33c5d05e7bdc5beff1bc8726cfe6f)(dmg-builder@26.15.3)(electron-builder-squirrel-windows@26.15.3)
       builder-util: 26.15.3
       builder-util-runtime: 9.7.0
       chalk: 4.1.2
@@ -19896,7 +19897,7 @@ snapshots:
       es6-error: 4.1.1
       matcher: 3.0.0
       roarr: 2.15.4
-      semver: 7.7.4
+      semver: 7.8.5
       serialize-error: 7.0.1
     optional: true
 
@@ -20908,7 +20909,7 @@ snapshots:
 
   node-abi@4.33.0:
     dependencies:
-      semver: 7.7.4
+      semver: 7.8.5
 
   node-addon-api@7.1.1: {}
 
@@ -20963,7 +20964,7 @@ snapshots:
 
   node-api-version@0.2.1:
     dependencies:
-      semver: 7.7.4
+      semver: 7.8.5
 
   node-domexception@1.0.0: {}
 
@@ -20980,7 +20981,7 @@ snapshots:
       graceful-fs: 4.2.11
       nopt: 9.0.0
       proc-log: 6.1.0
-      semver: 7.7.4
+      semver: 7.8.5
       tar: 7.5.22
       tinyglobby: 0.2.17
       undici: 6.28.0

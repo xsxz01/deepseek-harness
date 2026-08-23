@@ -173,7 +173,7 @@ export interface BuiltinPluginSpec {
 
 /** The out-of-tree plugins the desktop product ships as builtins. */
 export const BUILTIN_PLUGINS: readonly BuiltinPluginSpec[] = [
-  { name: '@deepseek-harness-tui/dsh-tui', version: '0.8.6' },
+  { name: '@deepseek-harness-tui/dsh-tui', version: '0.8.8' },
   { name: '@linxin666/dsh-web-ui-all', version: '0.2.5' },
   { name: '@nanmicoder/dsh-agent-teams', version: '0.1.8' },
   { name: 'dsh-at-file', version: '0.6.3' },
@@ -298,7 +298,15 @@ function stageHarnessDependencies(output: string, packedDirectories: readonly st
     version: cli.version,
     private: true,
     dependencies: runtimeDependencies(packed),
-    overrides: BUILTIN_REACT_OVERRIDES,
+    overrides: {
+      ...BUILTIN_REACT_OVERRIDES,
+      // npm rejects a prerelease peer like ^0.1.0-rc.7 when the installed
+      // workspace package is 0.1.1-rc.2 (prereleases only match ranges on the
+      // same tuple), so pin every packed workspace package to its tarball:
+      // overrides take precedence over peer validation, and the spec equals
+      // the direct dependency spec, which npm allows.
+      ...Object.fromEntries([...packed].map(([name, item]) => [name, item.url])),
+    },
   }
   writeFileSync(join(output, 'package.json'), `${JSON.stringify(manifest, null, 2)}\n`)
 

@@ -17,3 +17,22 @@ diff --git a/out/util/electronGet.js b/out/util/electronGet.js
  }
  async function extractZipStreaming(file, dir) {
      var _a;
+diff --git a/out/node-module-collector/pnpmNodeModulesCollector.js b/out/node-module-collector/pnpmNodeModulesCollector.js
+--- a/out/node-module-collector/pnpmNodeModulesCollector.js
++++ b/out/node-module-collector/pnpmNodeModulesCollector.js
+@@ -51,3 +51,14 @@ class PnpmNodeModulesCollector extends nodeModulesCollector_1.NodeModulesCollector {
+     getArgs() {
+-        return ["list", "--prod", "--json", "--depth", "Infinity", "--silent", "--loglevel=error"];
++        const args = ["list", "--prod", "--json", "--depth", "Infinity", "--silent", "--loglevel=error"];
++        // Scope the list to this package: an unfiltered workspace walk reads
++        // every project's installed tree and EMFILEs on large Windows trees.
++        // The app's own production graph is all the collector consumes.
++        try {
++            const manifest = JSON.parse(require("fs").readFileSync(require("path").join(this.rootDir, "package.json"), "utf8"));
++            if (typeof manifest.name === "string" && manifest.name.length > 0) {
++                args.push("--filter", manifest.name);
++            }
++        }
++        catch (_a) { }
++        return args;
+     }
