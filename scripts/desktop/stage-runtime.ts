@@ -16,6 +16,7 @@ import { dirname, join, relative, resolve } from 'node:path'
 import { parseArgs } from 'node:util'
 import { spawnSync } from 'node:child_process'
 import { isEntry } from '../release/process.ts'
+import { pnpmInvocation } from '../pnpm-invocation.ts'
 import { packedDependencies } from '../release/tarball.ts'
 
 /** Run a command with inherited streams and fail on a non-zero exit or spawn error. */
@@ -452,7 +453,8 @@ export function stageOpenpets(outputRoot: string, sourceDir: string | undefined)
   const unpacked = join(sourceDir, OPENPETS_UNPACKED_RELATIVE)
   if (!existsSync(join(unpacked, OPENPETS_EXECUTABLE))) {
     try {
-      run('pnpm', ['--filter', '@open-pets/desktop', 'package:dir'], { cwd: sourceDir })
+      const pnpm = pnpmInvocation(['--filter', '@open-pets/desktop', 'package:dir'])
+      run(pnpm.command, pnpm.args, { cwd: sourceDir })
     } catch (error) {
       writeFileSync(join(target, 'README.txt'), openpetsFallbackNote(error instanceof Error ? error.message : String(error)))
       console.warn('desktop runtime: OpenPets build failed; keeping the native pet')

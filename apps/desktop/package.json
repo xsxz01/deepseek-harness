@@ -3,9 +3,7 @@
   "description": "DeepSeek Harness Electron desktop application",
   "author": "DeepSeek",
   "version": "0.1.2-alpha.1",
-  "publishConfig": { "access": "public" },
-  "repository": { "type": "git", "url": "git+https://github.com/deepseek-ai/deepseek-harness.git", "directory": "apps/desktop" },
-  "files": ["lib/main.js"],
+  "private": true,
   "type": "module",
   "main": "lib/main.js",
   "scripts": {

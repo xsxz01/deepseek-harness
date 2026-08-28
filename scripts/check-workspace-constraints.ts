@@ -61,7 +61,6 @@ const appPackageFiles: Readonly<Record<string, readonly string[]>> = {
   // (dist/preview.html and dist/preview/) backs private experimental
   // packages and is not published.
   '@deepseek-ai/dsh-web-frontend': ['dist', '!dist/**/*.map', '!dist/preview.html', '!dist/preview'],
-  '@deepseek-ai/dsh-desktop': ['lib/main.js'],
 }
 
 /** The subset of package.json fields this constraint check cares about. */
@@ -282,6 +281,11 @@ export function checkWorkspaceManifest({ dir, manifest }: WorkspaceManifest): st
     && manifest.name !== undefined
     && publicLandlockPackages.has(manifest.name)
 
+  // A private app package (fork: the Electron desktop distribution) still gets
+  // versioned and tagged by its release family, but never appears in the npm
+  // publish set, so the publishable release-member checks do not apply.
+  const isPrivateAppVersionFollower = dir.startsWith('apps/') && manifest.private === true
+
   if (isPublicLandlockPackage) {
     if (manifest.private === true) {
       errors.push(`${label}: published Landlock package must not set "private": true`)
@@ -295,7 +299,7 @@ export function checkWorkspaceManifest({ dir, manifest }: WorkspaceManifest): st
       || manifest.repository.directory !== expectedDirectory) {
       errors.push(`${label}: published Landlock package repository must use ${repositoryUrl} with directory ${expectedDirectory} for trusted publishing`)
     }
-  } else if (releaseMemberDirectory.test(dir)) {
+  } else if (releaseMemberDirectory.test(dir) && !isPrivateAppVersionFollower) {
     // Release members state that they are publishable: npm refuses a private
     // package, and the repository field is how a consumer finds the source of
     // the package it installed.
@@ -334,7 +338,7 @@ export function checkWorkspaceManifest({ dir, manifest }: WorkspaceManifest): st
     }
   }
 
-  if (dir.startsWith('apps/') && manifest.name?.startsWith('@deepseek-ai/')) {
+  if (dir.startsWith('apps/') && manifest.name?.startsWith('@deepseek-ai/') && !isPrivateAppVersionFollower) {
     const expectedFiles = appPackageFiles[manifest.name]
     if (expectedFiles === undefined) {
       errors.push(`${label}: app package has no publication files policy`)
