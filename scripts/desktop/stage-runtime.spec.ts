@@ -70,7 +70,7 @@ describe('desktop runtime staging', () => {
 
   it('ships the builtin plugin set with exact registry versions', () => {
     expect(BUILTIN_PLUGINS).toEqual([
-      { name: '@deepseek-harness-tui/dsh-tui', version: '0.8.6' },
+      { name: '@deepseek-harness-tui/dsh-tui', version: '0.8.8' },
       { name: '@linxin666/dsh-web-ui-all', version: '0.2.5' },
       { name: '@nanmicoder/dsh-agent-teams', version: '0.1.8' },
       { name: 'dsh-at-file', version: '0.6.3' },
@@ -101,7 +101,7 @@ describe('desktop runtime staging', () => {
     expect(dependencies['@deepseek-ai/dsh']).toBe('file:///packed/dsh.tgz')
     // A workspace package with the same name shadows the builtin spec.
     expect(dependencies['dsh-at-file']).toBe('file:///packed/at-file.tgz')
-    expect(dependencies['@deepseek-harness-tui/dsh-tui']).toBe('0.8.6')
+    expect(dependencies['@deepseek-harness-tui/dsh-tui']).toBe('0.8.8')
     expect(dependencies['@linxin666/dsh-web-ui-all']).toBe('0.2.5')
     expect(dependencies['@nanmicoder/dsh-agent-teams']).toBe('0.1.8')
   })

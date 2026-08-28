@@ -3,4 +3,4 @@
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/feature/2026-08-15-host-owned-plugin-marketplace.md
 2026-08-15-host-owned-plugin-marketplace.md: 31c1825b85190ff8484addb3d2d2a3f4934a5927
-2026-08-15-host-owned-plugin-marketplace.zh.md: c5b5b24594e34956b2f2121047e59e3dbf2266ca
+2026-08-15-host-owned-plugin-marketplace.zh.md: 31f3e9051d42f79aa36752d53bf0511a36cf3e4e

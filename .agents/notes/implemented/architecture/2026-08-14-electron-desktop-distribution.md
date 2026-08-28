@@ -10,7 +10,7 @@ DeepSeek Harness needs an installable desktop application that preserves the exi
 
 The web profile is not a static renderer. It loads packages and user plugins dynamically, injects `window.__DSH_BOOT__`, owns HTTP and WebSocket connections, starts process trees through `node-pty`, and loads native dependencies such as `sharp` and `koffi`. Replacing those mechanisms with a second desktop transport or backend would duplicate production behavior and split verification authority.
 
-The [GUI layering and RPC protocol](2026-07-19-gui-layering-and-rpc-protocol.md) originally reserved an Electron IPC carrier. The desktop product needs a concrete carrier decision without changing the Host/Client split, RPC messages, browser carrier, or ordinary `dsh web` behavior.
+The [GUI layering and RPC protocol](../../archived/architecture/2026-07-19-gui-layering-and-rpc-protocol.md) originally reserved an Electron IPC carrier. The desktop product needs a concrete carrier decision without changing the Host/Client split, RPC messages, browser carrier, or ordinary `dsh web` behavior.
 
 ## Decision
 

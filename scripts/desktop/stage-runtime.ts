@@ -14,8 +14,17 @@ import {
 } from 'node:fs'
 import { dirname, join, relative, resolve } from 'node:path'
 import { parseArgs } from 'node:util'
-import { isEntry, run } from '../release/process.ts'
+import { spawnSync } from 'node:child_process'
+import { isEntry } from '../release/process.ts'
 import { packedDependencies } from '../release/tarball.ts'
+
+/** Run a command with inherited streams and fail on a non-zero exit or spawn error. */
+function run(command: string, args: readonly string[], options: { cwd?: string; env?: NodeJS.ProcessEnv } = {}): void {
+  const result = spawnSync(command, [...args], { cwd: options.cwd, env: options.env, stdio: 'inherit' })
+  if (result.error !== undefined) throw result.error
+  if (result.status !== 0) throw new Error(`${command} ${args.join(' ')} exited with ${String(result.status)}`)
+}
+
 
 /** Standard Node release pinned for the Windows x64 desktop product. */
 export const DESKTOP_NODE_VERSION = '24.19.0'

@@ -96,7 +96,6 @@ export function resolveTelemetryPatch(disabledEnv: string | undefined, hasRow: b
  * @returns the loaded profile.
  */
 export function prepareProfile(name: string, userLayer = true): Profile {
-  healProfilesModuleFallback(INSTALL_ANCHOR)
   const profile = loadProfile(NAME, name, INSTALL_ANCHOR, undefined, { userLayer })
   writeFileSync(join(profile.dir, PROFILE_ROOT_FILENAME), PROFILE_ROOT_CONFIG)
   return profile
@@ -140,12 +139,13 @@ function allPatches(composed: ComposedProfile): PatchOptions[] {
  * @param invocationPatches - launcher-owned in-memory overlays, in precedence order.
  * @returns the profile, its patch layers, and the composed row index.
  */
-function composeProfile(
+async function composeProfile(
   name: string,
   patchFiles: readonly string[],
   invocationPatches: readonly PatchOptions[],
-): ComposedProfile {
+): Promise<ComposedProfile> {
   const profile = prepareProfile(name)
+  await healProfilesModuleFallback({ installAnchor: INSTALL_ANCHOR, profile })
   const homePatches = loadOptionalPatches(NAME, homePatchPath()) ?? []
   const overlays = [
     ...patchFiles.flatMap(file => loadOverlayPatches(NAME, resolve(file))),
@@ -214,7 +214,7 @@ function suppressShutdownError(ctx: Context, signal: AbortSignal, error: unknown
  * @returns the settled root context and the shutdown controller.
  */
 export async function runProfile(options: RunProfileOptions): Promise<{ ctx: Context; shutdown: ProcessShutdown }> {
-  const composed = composeProfile(options.profile, options.patchFiles, options.invocationPatches ?? [])
+  const composed = await composeProfile(options.profile, options.patchFiles, options.invocationPatches ?? [])
   const app: { current?: Context } = {}
   const shutdown = createProcessShutdown(async () => { await app.current?.fiber.dispose() })
   const signalShutdown = new AbortController()

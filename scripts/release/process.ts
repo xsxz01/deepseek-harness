@@ -3,41 +3,13 @@
  * `pnpm`, `npm`, and `tar`, and each needs one of three failure behaviours.
  */
 
-import { spawnSync } from 'node:child_process'
-import { existsSync, realpathSync } from 'node:fs'
-import { dirname, join } from 'node:path'
+import { spawn, spawnSync } from 'node:child_process'
+import { realpathSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
-
-/** Shell-free executable and leading arguments for the active pnpm installation. */
-export interface PnpmInvocation {
-  command: string
-  args: readonly string[]
-}
-
-/**
- * Resolve pnpm through the JavaScript entry that launched the repository command.
- * @param environment - process environment inherited from pnpm.
- * @param nodeExecutable - Node executable whose adjacent Corepack installation is eligible.
- * @returns current Node plus pnpm's platform-independent JavaScript entry.
- */
-export function pnpmInvocation(
-  environment: NodeJS.ProcessEnv = process.env,
-  nodeExecutable: string = process.execPath,
-): PnpmInvocation {
-  const inherited = environment.npm_execpath
-  if (inherited !== undefined && inherited.length > 0) {
-    return { command: nodeExecutable, args: [inherited] }
-  }
-  const corepack = join(dirname(nodeExecutable), 'node_modules', 'corepack', 'dist', 'pnpm.js')
-  if (existsSync(corepack)) return { command: nodeExecutable, args: [corepack] }
-  throw new Error('release process: pnpm JavaScript entry is unavailable through npm_execpath or Corepack')
-}
 
 /** Where and with what environment a release step runs a command. */
 export interface RunOptions {
-  /** Working directory; defaults to the current one. */
   readonly cwd?: string
-  /** Child environment; defaults to this process's. */
   readonly env?: NodeJS.ProcessEnv
 }
 
@@ -45,9 +17,7 @@ export interface RunOptions {
 export interface CommandResult {
   /** Exit status, or null when a signal ended the process. */
   readonly status: number | null
-  /** Captured standard output. */
   readonly stdout: string
-  /** Captured standard error. */
   readonly stderr: string
 }
 
@@ -65,19 +35,8 @@ export function attempt(command: string, args: readonly string[], options: RunOp
 }
 
 /**
- * Run a command, capture its output, and echo it once the command exits.
- *
- * A step that both shows what a command said and classifies its own failure
- * needs both halves: the output has to reach the workflow log, and the caller has
- * to read it to decide whether a failure is worth retrying.
- *
- * This is not live progress. `spawnSync` returns only after the child exits, so
- * nothing appears while the command runs, and the two streams are echoed one
- * after the other — all of stdout, then all of stderr — which loses their
- * interleaving. For an npm publish that matters in one visible way: `npm notice`
- * lines go to stderr while the `+ name@version` confirmation goes to stdout, so
- * the log shows the confirmation first. Live progress would need an
- * asynchronous spawn with data listeners.
+ * Run a command, then echo and return its captured output. Output is buffered
+ * until exit and stdout precedes stderr.
  * @param command - executable name.
  * @param args - command arguments.
  * @param options - working directory and environment.
@@ -88,8 +47,6 @@ export function attemptEchoed(command: string, args: readonly string[], options:
     cwd: options.cwd,
     env: options.env,
     encoding: 'utf8',
-    // 'inherit' would leave nothing to capture, so the streams are piped and
-    // echoed instead.
     stdio: ['inherit', 'pipe', 'pipe'],
   })
   if (result.error !== undefined) throw result.error
@@ -114,24 +71,27 @@ export function capture(command: string, args: readonly string[], options: RunOp
 }
 
 /**
- * Run a command with inherited streams, so its progress reaches the log, and
- * fail on a non-zero exit.
+ * Run a command with inherited streams without blocking the event loop, so a
+ * caller can hold several commands in flight, and fail on a non-zero exit.
+ * Concurrent children interleave their output at line granularity.
  * @param command - executable name.
  * @param args - command arguments.
  * @param options - working directory and environment.
+ * @returns Resolves when the command exits with status zero.
  */
-export function run(command: string, args: readonly string[], options: RunOptions = {}): void {
-  const result = spawnSync(command, [...args], { cwd: options.cwd, env: options.env, stdio: 'inherit' })
-  if (result.error !== undefined) throw result.error
-  if (result.status !== 0) throw new Error(`${command} ${args.join(' ')} exited with ${String(result.status)}`)
+export function runConcurrent(command: string, args: readonly string[], options: RunOptions = {}): Promise<void> {
+  return new Promise((resolveRun, rejectRun) => {
+    const child = spawn(command, [...args], { cwd: options.cwd, env: options.env, stdio: 'inherit' })
+    child.once('error', rejectRun)
+    child.once('close', (status, signal) => {
+      if (status === 0) resolveRun()
+      else rejectRun(new Error(`${command} ${args.join(' ')} exited with ${String(status ?? signal)}`))
+    })
+  })
 }
 
 /**
- * Whether this module is the process entry point.
- *
- * The release scripts are both commands and modules: a test imports their pure
- * logic, and importing a module runs its body, so an unguarded `main()` would
- * run the wrong command with the wrong arguments.
+ * Return whether Node started the given module as the process entry point.
  * @param moduleUrl - the caller's `import.meta.url`.
  * @returns True when Node started this module.
  */

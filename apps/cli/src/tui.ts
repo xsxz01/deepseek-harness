@@ -133,7 +133,7 @@ export function ensureTuiProfile(): void {
  * @param argv - arguments after `dsh tui`.
  */
 export async function runTui(argv: readonly string[]): Promise<void> {
-  healProfilesModuleFallback(INSTALL_ANCHOR)
+  await healProfilesModuleFallback({ installAnchor: INSTALL_ANCHOR })
   ensureTuiProfile()
   // React dev builds accumulate unbounded performance buffers over long
   // sessions; the TUI ships production-rendered (same as the upstream bin).

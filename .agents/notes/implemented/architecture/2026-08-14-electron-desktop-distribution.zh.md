@@ -10,7 +10,7 @@ DeepSeek Harness 需要可安装的桌面应用，在不要求用户安装系统
 
 Web profile 不是静态 renderer。它会动态加载包和用户插件、注入 `window.__DSH_BOOT__`、持有 HTTP 与 WebSocket 连接、通过 `node-pty` 启动进程树，并加载 `sharp` 和 `koffi` 等原生依赖。若以第二套桌面传输或后端替换这些机制，就会重复生产行为并分裂验证权威。
 
-[GUI 分层与 RPC 协议](2026-07-19-gui-layering-and-rpc-protocol.md)最初为 Electron IPC 载体预留位置。桌面产品需要确定具体载体，同时不改变 Host/Client 拆分、RPC 消息、浏览器载体或普通 `dsh web` 行为。
+[GUI 分层与 RPC 协议](../../archived/architecture/2026-07-19-gui-layering-and-rpc-protocol.md)最初为 Electron IPC 载体预留位置。桌面产品需要确定具体载体，同时不改变 Host/Client 拆分、RPC 消息、浏览器载体或普通 `dsh web` 行为。
 
 ## Decision
 

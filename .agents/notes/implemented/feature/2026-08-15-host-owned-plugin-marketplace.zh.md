@@ -8,7 +8,7 @@ Status: implemented
 
 图形化市场需要发现第三方 bundle，同时不能让浏览器代码或远程目录字段成为包管理器权威。发现结果可能过期、畸形、超大或受外部服务控制。安装还会修改可执行的 profile 包、运行 dependency lifecycle script，并且不能暗示代码已经进入或离开 live Host。
 
-Harness 已有唯一的外部分发单元和安装权威：声明 `dsh.bundle.patch` 的 profile dependency，由 pnpm 管理并调和到 `dsh.profile.bundles`（[profile 插件 bundle](../architecture/2026-08-05-profile-plugin-bundles.md)）。市场专用 manifest、cache、loader 或命令语言会重新建立[单一外部分发决策](../simplification/2026-08-09-remove-repository-plugin.md)已经移除的独立 repository-plugin 路径。
+Harness 已有唯一的外部分发单元和安装权威：声明 `dsh.bundle.patch` 的 profile dependency，由 pnpm 管理并调和到 `dsh.profile.bundles`（[profile 插件 bundle](../architecture/2026-08-05-profile-plugin-bundles.zh.md)）。市场专用 manifest、cache、loader 或命令语言会重新建立[单一外部分发决策](../simplification/2026-08-09-remove-repository-plugin.zh.md)已经移除的独立 repository-plugin 路径。
 
 ## 决策
 
