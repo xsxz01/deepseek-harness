@@ -310,7 +310,7 @@ function stageHarnessDependencies(output: string, packedDirectories: readonly st
     overrides: {
       ...BUILTIN_REACT_OVERRIDES,
       // npm rejects a prerelease peer like ^0.1.0-rc.7 when the installed
-      // workspace package is 0.1.1-rc.2 (prereleases only match ranges on the
+      // workspace package is 0.1.2-alpha.1 (prereleases only match ranges on the
       // same tuple), so pin every packed workspace package to its tarball:
       // overrides take precedence over peer validation, and the spec equals
       // the direct dependency spec, which npm allows.
