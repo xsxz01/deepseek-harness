@@ -181,8 +181,13 @@ export interface BuiltinPluginSpec {
   readonly version: string
 }
 
-/** The out-of-tree plugins the desktop product ships as builtins. */
-export const BUILTIN_PLUGINS: readonly BuiltinPluginSpec[] = [
+/**
+ * The out-of-tree plugins the desktop product ships as builtins.
+ * A test build skips them with `DSH_DESKTOP_SKIP_BUILTINS=1`, which drops the
+ * plugins from the staged runtime dependencies and the installed manifest
+ * patch, so their registry installs (and peer resolution) never run.
+ */
+export const BUILTIN_PLUGINS: readonly BuiltinPluginSpec[] = process.env.DSH_DESKTOP_SKIP_BUILTINS === '1' ? [] : [
   { name: '@deepseek-harness-tui/dsh-tui', version: '0.8.8' },
   { name: '@linxin666/dsh-web-ui-all', version: '0.2.5' },
   { name: '@nanmicoder/dsh-agent-teams', version: '0.1.8' },
