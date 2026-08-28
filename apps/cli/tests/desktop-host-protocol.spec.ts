@@ -11,7 +11,7 @@ function ready(overrides: Partial<Extract<DesktopHostEvent, { type: 'ready' }>> 
   return {
     type: 'ready',
     origin: 'http://127.0.0.1:43123',
-    cookie: { name: 'dsh-desktop-host', value: TOKEN },
+    url: 'http://127.0.0.1:43123/?token=' + TOKEN,
     pid: 1234,
     version: '0.1.0',
     ...overrides,
@@ -53,8 +53,12 @@ describe('desktop Host IPC protocol', () => {
     ready({ origin: 'http://127.0.0.1' }),
     ready({ origin: 'http://127.0.0.1:0' }),
     ready({ origin: 'http://127.0.0.1:43123/path' }),
-    ready({ cookie: { name: 'other-cookie', value: TOKEN } }),
-    ready({ cookie: { name: 'dsh-desktop-host', value: 'short' } }),
+    ready({ url: 'http://127.0.0.1:43123/' }),
+    ready({ url: 'http://127.0.0.1:43123/?token=short' }),
+    ready({ url: 'http://127.0.0.1:43124/?token=' + TOKEN }),
+    ready({ url: 'http://127.0.0.1:43123/?token=' + TOKEN + '&extra=1' }),
+    ready({ url: 'https://127.0.0.1:43123/?token=' + TOKEN }),
+    ready({ url: 'http://127.0.0.1:43123/path?token=' + TOKEN }),
     ready({ pid: 0 }),
     { ...ready() as object, extra: true },
   ])('rejects invalid events: %j', (value) => {

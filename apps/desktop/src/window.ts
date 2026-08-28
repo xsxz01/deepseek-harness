@@ -194,15 +194,9 @@ export async function createDesktopWindow(
   const showHost = async (ready: ReadyEvent): Promise<void> => {
     retryAction = undefined
     allowedOrigin = new URL(ready.origin).origin
-    await session.cookies.set({
-      url: ready.origin,
-      name: ready.cookie.name,
-      value: ready.cookie.value,
-      httpOnly: true,
-      sameSite: 'strict',
-      path: '/',
-    })
-    await window.loadURL(ready.origin)
+    // The Web server exchanges the ready URL's process launch token for the
+    // browser-session cookie and redirects to the clean origin.
+    await window.loadURL(ready.url)
     if (restored?.maximized === true && !window.isMaximized()) window.maximize()
     await installShell()
     window.show()

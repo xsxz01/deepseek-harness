@@ -3,13 +3,10 @@
 
 /* v8 ignore file -- the built child-process acceptance suite exercises this entry. */
 
-import { randomBytes } from 'node:crypto'
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { loadLayeredEnv } from '@deepseek-ai/dsh-app-boot'
-import { provideWebServerAuthentication } from '@deepseek-ai/dsh-host-webserver'
 import {
-  DESKTOP_HOST_COOKIE_NAME,
   parseDesktopHostCommand,
   type DesktopHostEvent,
 } from './desktop-host-protocol.ts'
@@ -49,7 +46,6 @@ async function main(): Promise<void> {
     throw new Error('desktop-host: an active Node IPC channel is required')
   }
 
-  const token = randomBytes(32).toString('base64url')
   const stopRequested = new AbortController()
   let stopPromise: Promise<void> | undefined
   let active: Awaited<ReturnType<typeof runProfile>> | undefined
@@ -97,9 +93,6 @@ async function main(): Promise<void> {
       id: 'web-runtime',
       config: { printUrl: false, surfaceContext: true, trustedHosts: [] },
     }],
-    beforeMount: (ctx) => {
-      provideWebServerAuthentication(ctx, { cookieName: DESKTOP_HOST_COOKIE_NAME, token })
-    },
   }
 
   try {
@@ -118,10 +111,21 @@ async function main(): Promise<void> {
       await active.shutdown.shutdown(1)
       return
     }
+    const origin = 'http://127.0.0.1:' + String(webServer.port)
+    const connection = active.ctx.get('connection') as { authenticatedUrl(baseUrl: string): string } | undefined
+    if (connection === undefined) {
+      await sendEvent({
+        type: 'fatal',
+        code: 'invalid-composition',
+        message: 'desktop-host: Web runtime did not publish browser-session authentication',
+      })
+      await active.shutdown.shutdown(1)
+      return
+    }
     await sendEvent({
       type: 'ready',
-      origin: 'http://127.0.0.1:' + String(webServer.port),
-      cookie: { name: DESKTOP_HOST_COOKIE_NAME, value: token },
+      origin,
+      url: connection.authenticatedUrl(origin),
       pid: process.pid,
       version: readVersion(),
     })

@@ -30,7 +30,7 @@ describe('desktop Host process supervisor', () => {
       await expect(host.ready).resolves.toMatchObject({
         type: 'ready',
         origin: 'http://127.0.0.1:43123',
-        cookie: { name: 'dsh-desktop-host' },
+        url: 'http://127.0.0.1:43123/?token=' + 'A'.repeat(43),
       })
     } finally {
       await Promise.all([host.stop(), host.stop()])

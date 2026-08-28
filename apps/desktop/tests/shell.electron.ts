@@ -107,7 +107,7 @@ describe('Electron desktop shell', () => {
     if (context === undefined) throw new Error('Electron browser context disappeared')
     const firstPid = await hostPid(application.page)
     expect(await application.page.evaluate(() => typeof require)).toBe('undefined')
-    const cookie = (await context.cookies()).find(item => item.name === 'dsh-desktop-host')
+    const cookie = (await context.cookies()).find(item => item.name.startsWith('dsh-auth-'))
     expect(cookie).toMatchObject({ httpOnly: true, sameSite: 'Strict' })
 
     const titlebar = application.page.locator('#dsh-desktop-titlebar')

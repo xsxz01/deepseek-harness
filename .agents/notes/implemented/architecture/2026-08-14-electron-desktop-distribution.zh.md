@@ -24,7 +24,7 @@ NSIS 安装器把根目录 `dsh.cmd` 注册到当前用户 PATH。该 wrapper �
 
 `@deepseek-ai/dsh/desktop-host` 在 `127.0.0.1` 动态端口启动 Web profile。Electron 通过随包 Node 24 fork 它，并在就绪前立即取得子进程所有权。私有 Node IPC 协议传递 `ready`、`fatal` 和 `stopping` 事件；stdout 与 stderr 只承载诊断，绝不用于解析就绪状态。
 
-Ready 事件携带 origin、HttpOnly cookie 名称和值、Host PID 与 Harness 版本。Host 在私有进程内存中持有 token；它只通过私有 IPC 传给 Electron，并且只以 HttpOnly session cookie 形式进入 renderer 进程。WebServer 在 index、API route、静态与插件资源、HMR 资源和 WebSocket upgrade 之前都要求该 cookie；现有 Host 与 Origin 检查继续在下游执行。
+Ready 事件携带 origin、该 origin 的认证 URL（其唯一查询输入为进程启动 token）、Host PID 与 Harness 版本。Host 在私有进程内存中铸造 token；它只通过私有 IPC 传给 Electron，并在重定向中离开窗口地址栏——WebServer 在该重定向里把它兑换成 HttpOnly 浏览器会话 cookie，然后才提供 index、API route、静态与插件资源、HMR 资源和 WebSocket upgrade；现有 Host 与 Origin 检查继续在下游执行。
 
 Host 启动、正常关闭和强制进程树终止分别具有独立时限。格式错误或重复 IPC、提前退出、意外退出和 renderer 终止都会进入受 CSP 限制的本地失败文档。重试创建新的 Host generation，generation 检查阻止陈旧就绪或终止事件修改当前状态。应用关闭会使待处理呈现失效，并且只等待所持有的 Host，因为窗口关闭时 renderer 导航可能永不结算。
 

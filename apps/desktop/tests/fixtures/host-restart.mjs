@@ -1,18 +1,28 @@
 import { createServer } from 'node:http'
 
 const token = 'D'.repeat(43)
+const cookie = 'dsh-auth-fixture=value'
 const server = createServer((request, response) => {
-  if (!request.headers.cookie?.split(';').some(value => value.trim() === 'dsh-desktop-host=' + token)) {
-    response.writeHead(401).end('unauthorized')
+  const url = new URL(request.url ?? '/', 'http://fixture.invalid')
+  if (request.headers.cookie?.includes(cookie)) {
+    if (url.pathname === '/crash') {
+      response.writeHead(204).end()
+      setImmediate(() => { process.exit(7) })
+      return
+    }
+    response.setHeader('content-type', 'text/html; charset=utf-8')
+    response.end('<!doctype html><html><body><h1 data-host-pid="' + process.pid + '">Desktop fixture</h1><button id="crash">Crash Host</button><script>document.querySelector("#crash").onclick=()=>fetch("/crash")</script></body></html>')
     return
   }
-  if (request.url === '/crash') {
-    response.writeHead(204).end()
-    setImmediate(() => { process.exit(7) })
+  if (url.pathname === '/' && url.searchParams.get('token') === token) {
+    response.writeHead(303, {
+      'location': '/',
+      'set-cookie': cookie + '; Max-Age=3600; Path=/; HttpOnly; SameSite=Strict',
+    })
+    response.end()
     return
   }
-  response.setHeader('content-type', 'text/html; charset=utf-8')
-  response.end('<!doctype html><html><body><h1 data-host-pid="' + process.pid + '">Desktop fixture</h1><button id="crash">Crash Host</button><script>document.querySelector("#crash").onclick=()=>fetch("/crash")</script></body></html>')
+  response.writeHead(401).end('unauthorized')
 })
 
 server.listen(0, '127.0.0.1', () => {
@@ -21,7 +31,7 @@ server.listen(0, '127.0.0.1', () => {
   process.send?.({
     type: 'ready',
     origin: 'http://127.0.0.1:' + address.port,
-    cookie: { name: 'dsh-desktop-host', value: token },
+    url: 'http://127.0.0.1:' + address.port + '/?token=' + token,
     pid: process.pid,
     version: '0.1.0',
   })

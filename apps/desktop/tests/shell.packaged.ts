@@ -100,7 +100,7 @@ describe('packaged Electron desktop', () => {
     expect(await application.page.evaluate(() => typeof require)).toBe('undefined')
     const context = application.browser.contexts()[0]
     if (context === undefined) throw new Error('packaged browser context disappeared')
-    const cookie = (await context.cookies()).find(item => item.name === 'dsh-desktop-host')
+    const cookie = (await context.cookies()).find(item => item.name.startsWith('dsh-auth-'))
     expect(cookie).toMatchObject({ httpOnly: true, sameSite: 'Strict' })
     expect(await application.page.evaluate(async () => (await fetch('/')).status)).toBe(200)
     const titlebar = application.page.locator('#dsh-desktop-titlebar')
