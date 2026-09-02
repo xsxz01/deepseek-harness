@@ -182,84 +182,18 @@ export interface BuiltinPluginSpec {
 }
 
 /**
- * The out-of-tree plugins the desktop product ships as builtins.
- * A test build skips them with `DSH_DESKTOP_SKIP_BUILTINS=1`, which drops the
- * plugins from the staged runtime dependencies and the installed manifest
- * patch, so their registry installs (and peer resolution) never run.
+ * The out-of-tree plugins the desktop product ships as builtins. Empty by
+ * product decision: desktop packages do not bundle third-party plugins until
+ * the builtin mechanism stabilizes. The surrounding seams stay wired (registry
+ * installs, the CLI manifest patch, and the runtime presence check), so a
+ * later release re-enables builtins by restoring the pinned entries here;
+ * exact versions keep licenses and transitive resolution reviewable.
  */
-export const BUILTIN_PLUGINS: readonly BuiltinPluginSpec[] = process.env.DSH_DESKTOP_SKIP_BUILTINS === '1' ? [] : [
-  { name: '@deepseek-harness-tui/dsh-tui', version: '0.8.8' },
-  { name: '@linxin666/dsh-web-ui-all', version: '0.2.5' },
-  { name: '@nanmicoder/dsh-agent-teams', version: '0.1.8' },
-  { name: 'dsh-at-file', version: '0.6.3' },
-]
+export const BUILTIN_PLUGINS: readonly BuiltinPluginSpec[] = []
 
 /** Registry spec for one builtin plugin: npm resolves a bare version from the registry. */
 export function builtinDependencySpec(plugin: BuiltinPluginSpec): string {
   return plugin.version
-}
-
-/**
- * npm `overrides` pinned on the staged runtime manifest so the React tree stays
- * single-instance. dsh-tui declares react ^19.2.0 while the web UI plugins bring
- * react ^18 to the same tree; without the override npm nests react 19 under
- * dsh-tui, the hoisted usehooks-ts resolves react 18, and the reconciler (react
- * 19) and the components (react 18) disagree on the hook dispatcher, crashing
- * with "Cannot read properties of null (reading 'useRef')". The only React
- * consumer that renders in the Node runtime is dsh-tui; browser-side plugins
- * receive react from the web build, so pinning 19.2.0 is safe for the whole
- * staged tree.
- */
-/**
- * dsh-tui and its bundled @dsh-std packages publish `workspace:*` dependency
- * specs (upstream workspace links). A fresh install resolves them through the
- * tarball's bundledDependencies, but a resume install re-resolves the
- * installed manifests and npm rejects the workspace protocol, so pin the
- * bundled versions before the re-run.
- */
-function pinBundledWorkspaceDeps(output: string): void {
-  const tuiDir = join(output, 'node_modules', '@deepseek-harness-tui', 'dsh-tui')
-  const manifests = [join(tuiDir, 'package.json')]
-  const stdDir = join(tuiDir, 'node_modules', '@dsh-std')
-  if (existsSync(stdDir)) {
-    for (const name of readdirSync(stdDir)) manifests.push(join(stdDir, name, 'package.json'))
-  }
-  for (const manifestPath of manifests) {
-    if (!existsSync(manifestPath)) continue
-    const manifest = JSON.parse(readFileSync(manifestPath, 'utf8')) as { dependencies?: Record<string, string> }
-    let changed = false
-    const dependencies = manifest.dependencies
-    if (dependencies !== undefined) {
-      for (const key of Object.keys(dependencies)) {
-        if (dependencies[key] === 'workspace:*') {
-          dependencies[key] = '0.1.0'
-          changed = true
-        }
-      }
-    }
-    if (changed) writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`)
-  }
-}
-
-export const BUILTIN_REACT_OVERRIDES: Readonly<Record<string, string>> = {
-  react: '19.2.0',
-  'react-dom': '19.2.0',
-}
-
-/**
- * npm overrides pin the `dependencies` react but do not cover the
- * `react-reconciler` peerDependencies, so dsh-tui's reconciler pulls a
- * newer nested react (19.2.8) beside the overridden top-level 19.2.0. Two
- * react instances leave the top-level ReactSharedInternals.H unset and the
- * TUI crashes in usehooks-ts' useRef. Drop the nested copies so the whole
- * dsh-tui subtree resolves the single top-level react.
- */
-function dedupeTuiReact(output: string): void {
-  const tuiDir = join(output, 'node_modules', '@deepseek-harness-tui', 'dsh-tui')
-  for (const name of ['react', 'react-dom']) {
-    const nested = join(tuiDir, 'node_modules', name)
-    if (existsSync(nested)) rmSync(nested, { recursive: true, force: true })
-  }
 }
 
 /** The package directory name under node_modules for one package name. */
@@ -314,9 +248,8 @@ function stageHarnessDependencies(output: string, packedDirectories: readonly st
     private: true,
     dependencies: runtimeDependencies(packed),
     overrides: {
-      ...BUILTIN_REACT_OVERRIDES,
       // npm rejects a prerelease peer like ^0.1.0-rc.7 when the installed
-      // workspace package is 0.1.2-alpha.1 (prereleases only match ranges on the
+      // workspace package is 0.1.2-alpha.4 (prereleases only match ranges on the
       // same tuple), so pin every packed workspace package to its tarball:
       // overrides take precedence over peer validation, and the spec equals
       // the direct dependency spec, which npm allows.
@@ -330,7 +263,6 @@ function stageHarnessDependencies(output: string, packedDirectories: readonly st
   const environment = { ...process.env }
   delete environment.NODE_OPTIONS
   delete environment.NODE_PATH
-  pinBundledWorkspaceDeps(output)
   // Keep mode preserves the interrupted tree, but npm no-ops over packages whose
   // installed version already matches the spec, so drop the packed workspace
   // packages to force a reinstall from the fresh local tarballs (their lib/
@@ -342,7 +274,6 @@ function stageHarnessDependencies(output: string, packedDirectories: readonly st
     }
   }
   run(node, [npm, 'install', '--no-audit', '--no-fund', '--package-lock=false'], { cwd: output, env: environment })
-  dedupeTuiReact(output)
 
   // The heal walks the CLI app's manifest, not the runtime root, so the
   // builtin plugins must appear in the installed CLI package's dependencies to

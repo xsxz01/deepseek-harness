@@ -30,3 +30,7 @@ stage-runtime specs 固定内置集合、packed 优先合并与 React 覆盖；t
 ## 后果
 
 桌面运行时更大（四个插件树加传递依赖），暂存需要打包时的 registry 访问。`dsh tui` 依赖随包 dsh-tui 包——源码检出会 fail loud 而不是降级。OpenPets 宠物是单向的：桌面壳层启动应用但不监管其窗口生命周期；原生宠物仍是开发与回退表层。web profile 默认启用 dsh-web-ui-all、dsh-agent-teams 与 dsh-at-file：桌面安装的每个 web 会话都带 Web UI 表层、agent 团队工具与文件工具；源码检出保持内置 web 栈。
+
+## 相关
+
+- [桌面包不再内置第三方插件](../simplification/2026-09-02-desktop-packages-ship-without-third-party-plugins.zh.md) 记录了当前实际发布状态：桌面包不再内置这些插件而接缝保持接线；上文所述 React 实例固定与 tui workspace 固定辅助函数已随其服务的 bundle 移除。

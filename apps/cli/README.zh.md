@@ -14,7 +14,7 @@
 | `dsh --profile sdk` | 通过 JSON-RPC stdio 为 SDK client 提供服务，直至关闭或断开连接。 |
 | `dsh --profile sdk-minimal` | 以独立极简 agent 配置树为 SDK client 提供服务。 |
 | `dsh web` | `--profile web` 的别名。 |
-| `dsh tui` | 启动位于 `$DSH_HOME/profiles/dsh-tui` 的内置 dsh-TUI 终端界面。 |
+| `dsh tui` | 启动位于 `$DSH_HOME/profiles/dsh-tui` 的 dsh-TUI 终端界面（需要已发布的 `@deepseek-harness-tui/dsh-tui` bundle）。 |
 | `dsh plugin --profile <name> <pnpm args>` | 通过在 profile 目录中转发给 pnpm 来管理该 profile 的插件。 |
 
 运行命令时所在的目录将作为默认 workspace 根目录。`web`、`headless`、`tui`、`sdk`、`sdk-minimal` 和 `acp` profile 在首次使用时会从随附模板自动初始化；其他任何 profile 都必须通过 `dsh plugin` 创建。

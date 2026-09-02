@@ -14,7 +14,7 @@ The `dsh` command is the sole supported Node application launcher: profiles are 
 | `dsh --profile sdk` | Serve SDK clients over JSON-RPC stdio until shutdown or disconnect. |
 | `dsh --profile sdk-minimal` | Serve SDK clients with the standalone minimal agent tree. |
 | `dsh web` | Alias of `--profile web`. |
-| `dsh tui` | Boot the builtin dsh-TUI terminal interface under `$DSH_HOME/profiles/dsh-tui`. |
+| `dsh tui` | Boot the dsh-TUI terminal interface under `$DSH_HOME/profiles/dsh-tui` (requires the published `@deepseek-harness-tui/dsh-tui` bundle). |
 | `dsh plugin --profile <name> <pnpm args>` | Manage a profile's plugins by forwarding to pnpm in the profile directory. |
 
 The invoking directory is the default workspace root. The `web`, `headless`, `tui`, `sdk`, `sdk-minimal`, and `acp` profiles auto-initialize on first use from shipped templates; any other profile must be created through `dsh plugin`.

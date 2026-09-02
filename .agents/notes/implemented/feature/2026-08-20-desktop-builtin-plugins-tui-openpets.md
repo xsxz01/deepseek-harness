@@ -30,3 +30,7 @@ stage-runtime specs pin the builtin set, the packed-wins merge, and the React ov
 ## Consequences
 
 The desktop runtime is larger (four plugin trees plus transitive deps) and staging needs registry access at pack time. `dsh tui` requires the bundled dsh-tui package — a source checkout fails loud instead of degrading. The OpenPets pet is one-way: the desktop shell launches the app and does not supervise its window lifecycle; the native pet remains the development and fallback surface. All four plugins appear in the plugin inventory as installed but change nothing until a profile opts in.
+
+## Related
+
+- [Desktop packages ship without third-party plugins](../simplification/2026-09-02-desktop-packages-ship-without-third-party-plugins.md) records the current shipped state: the desktop package no longer bundles the plugins while the seams stay wired, and the react-instance pins and tui workspace-pin helpers described above were removed with the bundle they served.

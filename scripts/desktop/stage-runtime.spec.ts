@@ -5,7 +5,6 @@ import { afterEach, describe, expect, it } from 'vitest'
 import {
   addBuiltinDependencies,
   BUILTIN_PLUGINS,
-  BUILTIN_REACT_OVERRIDES,
   builtinDependencySpec,
   DESKTOP_NODE_VERSION,
   expectedChecksum,
@@ -68,15 +67,8 @@ describe('desktop runtime staging', () => {
     ])
   })
 
-  it('ships the builtin plugin set with exact registry versions', () => {
-    expect(BUILTIN_PLUGINS).toEqual([
-      { name: '@deepseek-harness-tui/dsh-tui', version: '0.8.8' },
-      { name: '@linxin666/dsh-web-ui-all', version: '0.2.5' },
-      { name: '@nanmicoder/dsh-agent-teams', version: '0.1.8' },
-      { name: 'dsh-at-file', version: '0.6.3' },
-    ])
-    const names = new Set(BUILTIN_PLUGINS.map(plugin => plugin.name))
-    expect(names.size).toBe(BUILTIN_PLUGINS.length)
+  it('keeps the builtin plugin set empty until the builtin mechanism stabilizes', () => {
+    expect(BUILTIN_PLUGINS).toEqual([])
     for (const plugin of BUILTIN_PLUGINS) {
       expect(plugin.name.length).toBeGreaterThan(0)
       expect(plugin.version).toMatch(/^\d+\.\d+\.\d+(?:-\S+)?$/u)
@@ -84,40 +76,26 @@ describe('desktop runtime staging', () => {
     }
   })
 
-  it('pins the staged React tree to one react instance for dsh-tui', () => {
-    expect(BUILTIN_REACT_OVERRIDES).toEqual({ react: '19.2.0', 'react-dom': '19.2.0' })
-    for (const [name, spec] of Object.entries(BUILTIN_REACT_OVERRIDES)) {
-      expect(spec).toMatch(/^\d+\.\d+\.\d+$/u)
-      expect(name.length).toBeGreaterThan(0)
-    }
-  })
-
-  it('merges the runtime dependencies from packed tarballs and builtin registry specs', () => {
+  it('merges runtime dependencies from packed tarballs with packed packages winning', () => {
     const packed = new Map([
       ['@deepseek-ai/dsh', { url: 'file:///packed/dsh.tgz', version: '0.1.0-rc.8' }],
       ['dsh-at-file', { url: 'file:///packed/at-file.tgz', version: '0.0.0-workspace' }],
     ])
     const dependencies = runtimeDependencies(packed)
-    expect(dependencies['@deepseek-ai/dsh']).toBe('file:///packed/dsh.tgz')
-    // A workspace package with the same name shadows the builtin spec.
-    expect(dependencies['dsh-at-file']).toBe('file:///packed/at-file.tgz')
-    expect(dependencies['@deepseek-harness-tui/dsh-tui']).toBe('0.8.8')
-    expect(dependencies['@linxin666/dsh-web-ui-all']).toBe('0.2.5')
-    expect(dependencies['@nanmicoder/dsh-agent-teams']).toBe('0.1.8')
+    expect(dependencies).toEqual({
+      '@deepseek-ai/dsh': 'file:///packed/dsh.tgz',
+      'dsh-at-file': 'file:///packed/at-file.tgz',
+    })
   })
 
-  it('records the builtin plugins in the CLI manifest for the profile heal closure', () => {
+  it('keeps the CLI manifest dependencies unchanged while no builtin plugin ships', () => {
     const manifest = addBuiltinDependencies({
       name: '@deepseek-ai/dsh',
       version: '0.1.0-rc.8',
       dependencies: { '@deepseek-ai/dsh-agent': '0.1.0-rc.8' },
     })
-    expect(manifest.dependencies['@deepseek-ai/dsh-agent']).toBe('0.1.0-rc.8')
-    for (const plugin of BUILTIN_PLUGINS) {
-      expect(manifest.dependencies[plugin.name]).toBe(plugin.version)
-    }
     // The merge never drops an existing dependency entry.
-    expect(manifest.dependencies).toHaveProperty('@deepseek-ai/dsh-agent')
+    expect(manifest.dependencies).toEqual({ '@deepseek-ai/dsh-agent': '0.1.0-rc.8' })
   })
 
   it('stages the OpenPets companion from a built unpacked output', () => {
