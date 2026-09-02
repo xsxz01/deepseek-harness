@@ -19,7 +19,7 @@ pnpm run build
 pnpm --filter @deepseek-ai/dsh-desktop start
 ```
 
-Development resolves `@deepseek-ai/dsh/desktop-host` from the built workspace package and uses `DSH_DESKTOP_NODE`, `npm_node_execpath`, or `node` in that order. `DSH_DESKTOP_HOST_MODULE` substitutes a Host entry and `DSH_DESKTOP_USER_DATA` isolates Electron state for acceptance tests. Production ignores those development substitutions and resolves the standard Node executable and installed Harness tree from `resources/harness`; missing resources fail before Host startup.
+Development resolves `@deepseek-ai/dsh/desktop-host` from the built workspace package and uses `DSH_DESKTOP_NODE`, `npm_node_execpath`, or `node` in that order. `DSH_DESKTOP_HOST_MODULE` substitutes a Host entry. In any build, `DSH_DESKTOP_USER_DATA` re-roots the instance identity: it moves the Electron state there and, unless `DSH_HOME` is already set, the Harness home under it, so a packaged build can run side by side with another install without sharing profiles; acceptance tests use it to isolate state. Production ignores the development runtime substitutions and resolves the standard Node executable and installed Harness tree from `resources/harness`; missing resources fail before Host startup.
 
 `pnpm run desktop:test:e2e` runs the serial source-mode Electron product and lifecycle acceptance test after a build. `pnpm run desktop:package:win` rebuilds the repository, stages the verified runtime, runs Electron Builder, and writes `SHA256SUMS.txt`. `pnpm run desktop:test:packaged` validates the unpacked artifact, bundled Host, custom shell, and `dsh.cmd` on Windows. The release targets are an assisted NSIS installer and a portable zip; only NSIS installation registers PATH.
 

@@ -19,7 +19,7 @@ pnpm run build
 pnpm --filter @deepseek-ai/dsh-desktop start
 ```
 
-开发模式依次使用 `DSH_DESKTOP_NODE`、`npm_node_execpath` 或 `node`，并从已构建的工作区包解析 `@deepseek-ai/dsh/desktop-host`。`DSH_DESKTOP_HOST_MODULE` 可替换 Host 入口，`DSH_DESKTOP_USER_DATA` 可为验收测试隔离 Electron 状态。生产模式忽略这些开发替换，并从 `resources/harness` 解析标准 Node 可执行文件和已安装 Harness 树；缺少资源会在 Host 启动前明确失败。
+开发模式依次使用 `DSH_DESKTOP_NODE`、`npm_node_execpath` 或 `node`，并从已构建的工作区包解析 `@deepseek-ai/dsh/desktop-host`。`DSH_DESKTOP_HOST_MODULE` 可替换 Host 入口。任意构建下，`DSH_DESKTOP_USER_DATA` 都会重定实例标识：把 Electron 状态移入该目录，并在未显式设置 `DSH_HOME` 时把 Harness home 也置于其下，因此打包版可与另一安装并行运行而互不共享 profile；验收测试用它隔离状态。生产模式忽略这些开发运行替换，并从 `resources/harness` 解析标准 Node 可执行文件和已安装 Harness 树；缺少资源会在 Host 启动前明确失败。
 
 构建后，`pnpm run desktop:test:e2e` 会运行串行的源码模式 Electron 产品和生命周期验收测试。`pnpm run desktop:package:win` 会重新构建仓库、暂存经过校验的运行时、运行 Electron Builder，并写入 `SHA256SUMS.txt`。`pnpm run desktop:test:packaged` 会在 Windows 上验证解包产物、随包 Host、自定义壳层和 `dsh.cmd`。发行目标是交互式 NSIS 安装器和便携 zip；只有 NSIS 安装会注册 PATH。
 

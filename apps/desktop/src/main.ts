@@ -25,8 +25,15 @@ function beginQuit(): void {
 
 /** Own the single desktop instance and its bounded Host lifecycle. */
 async function main(): Promise<void> {
-  if (!app.isPackaged && process.env.DSH_DESKTOP_USER_DATA !== undefined) {
-    app.setPath('userData', process.env.DSH_DESKTOP_USER_DATA)
+  // DSH_DESKTOP_USER_DATA re-roots the instance identity (Electron state and,
+  // unless DSH_HOME is already set, the Harness home) so a packaged build can
+  // run side by side with another install without sharing its profiles.
+  const userDataOverride = process.env.DSH_DESKTOP_USER_DATA
+  if (userDataOverride !== undefined) {
+    app.setPath('userData', userDataOverride)
+    if (process.env.DSH_HOME === undefined) {
+      process.env.DSH_HOME = join(userDataOverride, 'harness-home')
+    }
   }
   if (!app.requestSingleInstanceLock()) {
     app.quit()
