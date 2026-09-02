@@ -2,7 +2,7 @@
   "name": "@deepseek-ai/dsh-desktop",
   "description": "DeepSeek Harness Electron desktop application",
   "author": "DeepSeek",
-  "version": "0.1.2-alpha.1",
+  "version": "0.1.2-alpha.4",
   "private": true,
   "type": "module",
   "main": "lib/main.js",
